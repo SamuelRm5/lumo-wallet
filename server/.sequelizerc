@@ -1,0 +1,9 @@
+// This file contains the settings for the database
+const path = require("path");
+
+module.exports = {
+	"config": path.resolve("./src/database/config", "config.js"),
+	"models-path": path.resolve("./src/database/models"),
+	"seeders-path": path.resolve("./src/database/seeders"),
+	"migrations-path": path.resolve("./src/database/migrations"),
+};

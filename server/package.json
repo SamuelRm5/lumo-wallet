@@ -1,0 +1,33 @@
+{
+  "name": "api-node",
+  "version": "1.0.0",
+  "description": "Basic usage of express, sequelize and node",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon ./src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "express",
+    "sequelize",
+    "node",
+    "mysql"
+  ],
+  "author": "samuelrm05",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.9.1",
+    "sequelize": "^6.37.1",
+    "zod": "^3.25.32"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
