@@ -1,8 +1,9 @@
 import axios from "axios";
 
 // Asegúrate de configurar la baseURL si aún no lo has hecho
+//Obten el dominio desde el env
 const instance = axios.create({
-  baseURL: "http://192.168.80.20:3000/api/v1", // ajusta al dominio real
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1",
   timeout: 5000,
 });
 

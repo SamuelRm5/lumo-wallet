@@ -35,6 +35,15 @@ const MainLayout = () => {
         </button>
 
         <div className="flex flex-col mt-8 w-full text-lg">
+          <h1 className="text-xl font-semibold mb-5 flex items-center gap-4 text-blue-600">
+            <span>
+              <Icon
+                icon="material-symbols:account-tree-outline-rounded"
+                fontSize={30}
+              />
+            </span>
+            Cuentas Meli
+          </h1>
           <button
             onClick={() => handleNavigation("home")}
             className="flex items-center gap-4 p-3"
