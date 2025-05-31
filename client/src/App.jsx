@@ -11,7 +11,11 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<MainLayout />}>
-        <Route index path="home" element={<Home />} />
+        {/* Redirección desde / hacia /home */}
+        <Route index element={<Navigate to="/home" replace />} />
+
+        {/* Rutas internas */}
+        <Route path="home" element={<Home />} />
         <Route path="deposites" element={<Deposites />} />
         <Route path="accounts/:type" element={<CuentasPage />} />
         <Route path="accounts/create/:type" element={<CreateAccount />} />
@@ -21,7 +25,9 @@ function App() {
           element={<CreateMovement />}
         />
       </Route>
-      <Route path="*" element={<Navigate to="/home" />} />
+
+      {/* Ruta para cualquier otra no definida */}
+      <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
   );
 }
