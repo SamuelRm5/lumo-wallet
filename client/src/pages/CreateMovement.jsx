@@ -165,6 +165,8 @@ const CreateMovement = () => {
               onChange={handleAmountChange}
               className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-blue-600 bg-white"
               min="0"
+              inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="$0"
             />
           </div>

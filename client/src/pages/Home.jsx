@@ -87,9 +87,9 @@ const Home = () => {
         } text-sm`}
       >
         {diferencia > 0 ? (
-          <p className="text-green-700  flex justify-between items-center">
+          <p className="flex justify-between items-center">
             Tienes un excedente de{" "}
-            <span className="text-green-800 font-bold text-lg">
+            <span className="font-bold text-lg">
               {diferencia.toLocaleString("es-CO", {
                 style: "currency",
                 currency: "COP",

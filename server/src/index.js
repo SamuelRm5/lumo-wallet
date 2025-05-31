@@ -13,8 +13,8 @@ const app = express();
 app.use(helmet());
 
 const corsOptions = {
-	// origin: process.env.CORS_ORIGIN, // Define el origen permitido
-	origin: "*",
+	origin: process.env.CORS_ORIGIN, // Define el origen permitido
+	// origin: "*",
 	optionsSuccessStatus: 200,
 };
 
