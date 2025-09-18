@@ -32,7 +32,7 @@ app.use("/api/v1/movimientos", v1MovimientosRoutes);
 		 * sync({ alter: true }) detecta las diferencias entre el modelo y la tabla y las aplica
 		 * sync() no hace nada si la tabla ya existe
 		 */
-		await sequelize.sync({ alter: true });
+		await sequelize.sync();
 		console.log("Database synchronized");
 	} catch (error) {
 		console.error("Unable to connect to the database:", error);
