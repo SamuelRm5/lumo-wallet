@@ -164,9 +164,7 @@ const CreateMovement = () => {
               value={amountFormat}
               onChange={handleAmountChange}
               className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-blue-600 bg-white"
-              min="0"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              inputMode="text"
               placeholder="$0"
             />
           </div>
