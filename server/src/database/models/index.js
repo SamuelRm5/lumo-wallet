@@ -28,10 +28,12 @@ const sequelize = new Sequelize(
 );
 
 const loadModels = async () => {
+	const { default: Usuarios } = await import("../models/Usuarios.js");
 	const { default: Cuentas } = await import("../models/Cuentas.js");
 	const { default: Movimientos } = await import("../models/Movimientos.js");
 
 	const models = {
+		Usuarios: Usuarios(sequelize),
 		Cuentas: Cuentas(sequelize),
 		Movimientos: Movimientos(sequelize),
 	};

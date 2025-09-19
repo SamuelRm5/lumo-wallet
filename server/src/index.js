@@ -1,9 +1,14 @@
 import loadModels from "./database/models/index.js";
-import { v1CuentasRoutes, v1MovimientosRoutes } from "./v1/routes/index.js";
+import {
+	v1AuthRoutes,
+	v1CuentasRoutes,
+	v1MovimientosRoutes,
+} from "./v1/routes/index.js";
 import express, { json } from "express";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import cors from "cors";
+
 const { sequelize } = await loadModels();
 
 dotenv.config();
@@ -22,6 +27,8 @@ app.use(cors(corsOptions));
 
 app.use(json());
 
+// Rutas de la aplicación
+app.use("/api/v1/auth", v1AuthRoutes);
 app.use("/api/v1/cuentas", v1CuentasRoutes);
 app.use("/api/v1/movimientos", v1MovimientosRoutes);
 

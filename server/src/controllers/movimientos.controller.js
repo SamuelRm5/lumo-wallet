@@ -5,7 +5,9 @@ const { Movimientos, Cuentas } = await loadModels();
 const getMovimientos = async (req, res) => {
 	const { cuentaId } = req.params;
 	try {
-		const cuenta = await Cuentas.findByPk(cuentaId);
+		const cuenta = await Cuentas.findOne({
+			where: { id: cuentaId, usuarioId: req.userId },
+		});
 		if (!cuenta) {
 			return res.status(404).json({ error: "Cuenta no encontrada" });
 		}
@@ -27,7 +29,16 @@ const getMovimientos = async (req, res) => {
 const getMovimiento = async (req, res) => {
 	const { id } = req.params;
 	try {
-		const movimiento = await Movimientos.findByPk(id);
+		const movimiento = await Movimientos.findOne({
+			where: { id },
+			include: [
+				{
+					model: Cuentas,
+					as: "cuenta",
+					where: { usuarioId: req.userId },
+				},
+			],
+		});
 
 		if (!movimiento) {
 			return res.status(404).json({ error: "Movimiento no encontrado" });
@@ -46,6 +57,15 @@ const createMovimiento = async (req, res) => {
 	const { cuentaId } = req.params;
 	const { tipo, monto, descripcion, createdAt } = req.body;
 	try {
+		// Verificar que la cuenta pertenezca al usuario
+		const cuenta = await Cuentas.findOne({
+			where: { id: cuentaId, usuarioId: req.userId },
+		});
+
+		if (!cuenta) {
+			return res.status(404).json({ error: "Cuenta no encontrada" });
+		}
+
 		const nuevoMovimiento = await Movimientos.create({
 			cuentaId,
 			tipo,
@@ -66,7 +86,16 @@ const updateMovimiento = async (req, res) => {
 	const { id } = req.params;
 	const { tipo, monto, descripcion, createdAt } = req.body;
 	try {
-		const movimiento = await Movimientos.findByPk(id);
+		const movimiento = await Movimientos.findOne({
+			where: { id },
+			include: [
+				{
+					model: Cuentas,
+					as: "cuenta",
+					where: { usuarioId: req.userId },
+				},
+			],
+		});
 		if (!movimiento) {
 			return res.status(404).json({ error: "Movimiento no encontrado" });
 		}
@@ -83,7 +112,16 @@ const updateMovimiento = async (req, res) => {
 const deleteMovimiento = async (req, res) => {
 	const { id } = req.params;
 	try {
-		const movimiento = await Movimientos.findByPk(id);
+		const movimiento = await Movimientos.findOne({
+			where: { id },
+			include: [
+				{
+					model: Cuentas,
+					as: "cuenta",
+					where: { usuarioId: req.userId },
+				},
+			],
+		});
 		if (!movimiento) {
 			return res.status(404).json({ error: "Movimiento no encontrado" });
 		}

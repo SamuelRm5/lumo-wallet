@@ -1,35 +1,30 @@
 import { Model, DataTypes } from "sequelize";
 
 export default function (sequelize) {
-	class Cuentas extends Model {}
+	class Usuarios extends Model {}
 
-	Cuentas.init(
+	Usuarios.init(
 		{
 			id: {
 				type: DataTypes.INTEGER,
 				primaryKey: true,
 				autoIncrement: true,
 			},
-			usuarioId: {
-				type: DataTypes.INTEGER,
-				allowNull: false,
-				references: {
-					model: "usuarios",
-					key: "id",
-				},
-			},
 			nombre: {
 				type: DataTypes.STRING(100),
 				allowNull: false,
 			},
-			descripcion: {
+			email: {
 				type: DataTypes.STRING(255),
-				allowNull: true,
-			},
-			tipo: {
-				type: DataTypes.ENUM("normal", "deuda", "fuente"),
 				allowNull: false,
-				defaultValue: "deuda",
+				unique: true,
+				validate: {
+					isEmail: true,
+				},
+			},
+			password: {
+				type: DataTypes.STRING(255),
+				allowNull: false,
 			},
 			createdAt: {
 				type: DataTypes.DATE,
@@ -44,10 +39,10 @@ export default function (sequelize) {
 		},
 		{
 			sequelize,
-			modelName: "cuenta",
-			tableName: "cuentas",
+			modelName: "usuario",
+			tableName: "usuarios",
 		},
 	);
 
-	return Cuentas;
+	return Usuarios;
 }

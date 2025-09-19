@@ -6,7 +6,10 @@ const { literal } = sequelize;
 const getAllCuentas = async (req, res) => {
 	try {
 		const cuentas = await Cuentas.findAll({
-			where: { estado: "activo" },
+			where: {
+				estado: "activo",
+				usuarioId: req.userId,
+			},
 			order: [["createdAt", "DESC"]],
 			attributes: {
 				include: [
@@ -33,6 +36,7 @@ const getAllCuentas = async (req, res) => {
 
 		res.status(200).json(cuentas);
 	} catch (error) {
+		console.error("Error en getAllCuentas:", error);
 		res.status(500).json({
 			error: "Error al obtener las cuentas",
 		});
@@ -43,7 +47,10 @@ const getCuentaById = async (req, res) => {
 	const { id } = req.params;
 	try {
 		const cuenta = await Cuentas.findOne({
-			where: { id },
+			where: {
+				id,
+				usuarioId: req.userId,
+			},
 			attributes: {
 				include: [
 					[
@@ -80,7 +87,11 @@ const getCuentasByTipo = async (req, res) => {
 	const { tipo } = req.params;
 	try {
 		const cuentas = await Cuentas.findAll({
-			where: { tipo, estado: "activo" },
+			where: {
+				tipo,
+				estado: "activo",
+				usuarioId: req.userId,
+			},
 			order: [["createdAt", "DESC"]],
 			attributes: {
 				include: [
@@ -120,6 +131,7 @@ const createCuenta = async (req, res) => {
 			descripcion,
 			tipo,
 			estado: "activo",
+			usuarioId: req.userId,
 		});
 		res.status(201).json(nuevaCuenta);
 	} catch (error) {
@@ -131,7 +143,9 @@ const updateCuenta = async (req, res) => {
 	const { id } = req.params;
 	const { nombre, descripcion, tipo } = req.body;
 	try {
-		const cuenta = await Cuentas.findByPk(id);
+		const cuenta = await Cuentas.findOne({
+			where: { id, usuarioId: req.userId },
+		});
 		if (!cuenta) {
 			return res.status(404).json({ message: "Cuenta no encontrada" });
 		}
@@ -151,7 +165,9 @@ const updateCuenta = async (req, res) => {
 const deleteCuenta = async (req, res) => {
 	const { id } = req.params;
 	try {
-		const cuenta = await Cuentas.findByPk(id);
+		const cuenta = await Cuentas.findOne({
+			where: { id, usuarioId: req.userId },
+		});
 		if (!cuenta) {
 			return res.status(404).json({ message: "Cuenta no encontrada" });
 		}
