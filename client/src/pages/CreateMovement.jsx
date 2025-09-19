@@ -137,7 +137,7 @@ const CreateMovement = () => {
           <Icon
             icon="mingcute:loading-line"
             fontSize={40}
-            className="animate-spin text-blue-500"
+            className="animate-spin text-primary-500"
           />
         </div>
       ) : (
@@ -184,7 +184,7 @@ const CreateMovement = () => {
                 ref={amountRef}
                 value={amountFormat}
                 onChange={handleAmountChange}
-                className="border border-neutral-300 rounded w-full p-2 pl-8 pr-4 focus:outline-blue-600 bg-white"
+                className="border border-neutral-300 rounded w-full p-2 pl-8 pr-4 focus:outline-primary bg-white"
                 inputMode="numeric"
                 pattern="[0-9,]*"
                 placeholder="0"
@@ -201,7 +201,7 @@ const CreateMovement = () => {
               onChange={(e) =>
                 setInputs({ ...inputs, descripcion: e.target.value })
               }
-              className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-blue-600 bg-white"
+              className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-primary bg-white"
               type="text"
             />
           </div>
@@ -221,7 +221,7 @@ const CreateMovement = () => {
               value={inputs.fecha}
               onChange={(e) => setInputs({ ...inputs, fecha: e.target.value })}
               required
-              className="border h-[42px] border-neutral-300 rounded w-full p-2 px-4 focus:outline-blue-600 bg-white"
+              className="border h-[42px] border-neutral-300 rounded w-full p-2 px-4 focus:outline-primary bg-white"
             />
           </div>
 
@@ -229,7 +229,7 @@ const CreateMovement = () => {
           <button
             disabled={loading}
             type="submit"
-            className="mt-6 w-full h-[40px] bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            className="mt-6 w-full h-[40px] bg-primary text-white rounded hover:bg-primary-800 transition-colors"
           >
             {loading ? (
               <p className="text-white w-full flex items-center justify-center">

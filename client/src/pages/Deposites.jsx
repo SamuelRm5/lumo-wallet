@@ -30,10 +30,10 @@ const Deposites = () => {
       {!loading && (
         <Link
           to={`/accounts/create/normal`}
-          className="bg-white w-full rounded-xl shadow gap-2 p-4 flex items-center mb-3 hover:bg-blue-50 transition-colors"
+          className="bg-white w-full rounded-xl shadow gap-2 p-4 flex items-center mb-3 hover:bg-primary-50 transition-colors"
         >
-          <Icon icon="mdi:plus" fontSize={30} className="text-blue-600" />
-          <span className="text-blue-600 font-semibold">Agregar depósito</span>
+          <Icon icon="mdi:plus" fontSize={30} className="text-primary" />
+          <span className="text-primary font-semibold">Agregar depósito</span>
         </Link>
       )}
       <div>
@@ -42,7 +42,7 @@ const Deposites = () => {
             <Icon
               icon="mingcute:loading-line"
               fontSize={40}
-              className="animate-spin text-blue-500"
+              className="animate-spin text-primary-500"
             />
           </div>
         ) : accounts.length === 0 ? (

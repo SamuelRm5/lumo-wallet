@@ -234,7 +234,7 @@ const Login = () => {
         
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700"
+          className="w-full bg-primary text-white p-3 rounded hover:bg-primary-800"
         >
           {isRegister ? 'Registrarse' : 'Iniciar Sesión'}
         </button>
@@ -244,7 +244,7 @@ const Login = () => {
           <button
             type="button"
             onClick={() => setIsRegister(!isRegister)}
-            className="text-blue-600 ml-2"
+            className="text-primary ml-2"
           >
             {isRegister ? 'Iniciar Sesión' : 'Registrarse'}
           </button>

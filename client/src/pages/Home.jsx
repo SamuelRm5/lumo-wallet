@@ -70,7 +70,7 @@ const Home = () => {
         <Icon
           icon="mingcute:loading-line"
           fontSize={40}
-          className="animate-spin text-blue-500"
+          className="animate-spin text-primary-500"
         />
       </div>
     </div>
@@ -83,7 +83,7 @@ const Home = () => {
             ? "bg-green-600"
             : diferencia < 0
             ? "bg-red-600"
-            : "bg-blue-600"
+            : "bg-primary"
         } text-sm`}
       >
         {diferencia > 0 ? (
@@ -115,7 +115,7 @@ const Home = () => {
 
       {/* Lo que debe haber */}
       <div className="bg-white p-4 rounded-xl shadow">
-        <h2 className="text-lg font-semibold text-blue-700 mb-3">
+        <h2 className="text-lg font-semibold text-primary-800 mb-3">
           Lo que debe haber
         </h2>
 
@@ -143,7 +143,7 @@ const Home = () => {
             {/* Total */}
             <div className="flex items-center justify-between pt-4 text-base font-semibold text-gray-800">
               <span>Total disponible</span>
-              <span className="text-blue-700">
+              <span className="text-primary-800">
                 {totales.totalFuente.toLocaleString("es-CO", {
                   style: "currency",
                   currency: "COP",
@@ -161,7 +161,9 @@ const Home = () => {
 
       {/* Lo que hay */}
       <div className="bg-white p-4 rounded-xl shadow">
-        <h2 className="text-lg font-semibold text-blue-700 mb-3">Lo que hay</h2>
+        <h2 className="text-lg font-semibold text-primary-800 mb-3">
+          Lo que hay
+        </h2>
 
         {accounts.normal.length > 0 ? (
           <div className="divide-y divide-gray-200">
@@ -199,7 +201,7 @@ const Home = () => {
             {/* Total */}
             <div className="flex items-center justify-between pt-4 text-base font-semibold text-gray-800">
               <span>Total disponible</span>
-              <span className="text-blue-700">
+              <span className="text-primary-800">
                 {(
                   totales.totalNormal + Math.abs(totales.totalDeuda)
                 ).toLocaleString("es-CO", {

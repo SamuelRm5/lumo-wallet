@@ -36,7 +36,7 @@ const Movements = () => {
           <Icon
             icon="mingcute:loading-line"
             fontSize={40}
-            className="animate-spin text-blue-500"
+            className="animate-spin text-primary-500"
           />
         </div>
       ) : (
@@ -74,7 +74,7 @@ const Movements = () => {
           {/* Botón de agregar movimiento */}
           <Link
             to="create"
-            className="bg-blue-600 text-white w-full rounded-xl shadow flex items-center gap-3 p-3 mb-5 hover:bg-blue-700 transition"
+            className="bg-primary text-white w-full rounded-xl shadow flex items-center gap-3 p-3 mb-5 hover:bg-primary-800 transition"
           >
             <Icon icon="mdi:plus" fontSize={24} />
             <span className="font-medium text-sm">Agregar movimiento</span>

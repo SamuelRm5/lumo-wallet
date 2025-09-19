@@ -33,20 +33,20 @@ const CuentasPage = () => {
       <div className="w-full flex my-4 h-10">
         <button
           onClick={() => navigate("/accounts/deuda")}
-          className={`border border-r-0 border-blue-600 ${
+          className={`border border-r-0 border-primary ${
             accountType === "deuda"
-              ? "bg-blue-600 text-white font-semibold"
-              : "text-blue-600"
+              ? "bg-primary text-white font-semibold"
+              : "text-primary"
           } rounded-l-md w-full`}
         >
           Deudas
         </button>
         <button
           onClick={() => navigate("/accounts/fuente")}
-          className={`border border-blue-600 ${
+          className={`border border-primary ${
             accountType === "fuente"
-              ? "bg-blue-600 text-white font-semibold"
-              : "text-blue-600"
+              ? "bg-primary text-white font-semibold"
+              : "text-primary"
           } rounded-r-md w-full`}
         >
           Fuentes
@@ -55,10 +55,10 @@ const CuentasPage = () => {
       {!loading && (
         <Link
           to={`/accounts/create/${accountType}`}
-          className="bg-white w-full rounded-xl shadow gap-2 p-4 flex items-center mb-3 hover:bg-blue-50 transition-colors"
+          className="bg-white w-full rounded-xl shadow gap-2 p-4 flex items-center mb-3 hover:bg-primary-50 transition-colors"
         >
-          <Icon icon="mdi:plus" fontSize={30} className="text-blue-600" />
-          <span className="text-blue-600 font-semibold">Agregar Cuenta</span>
+          <Icon icon="mdi:plus" fontSize={30} className="text-primary" />
+          <span className="text-primary font-semibold">Agregar Cuenta</span>
         </Link>
       )}
       <div>
@@ -67,7 +67,7 @@ const CuentasPage = () => {
             <Icon
               icon="mingcute:loading-line"
               fontSize={40}
-              className="animate-spin text-blue-500"
+              className="animate-spin text-primary-500"
             />
           </div>
         ) : accounts.length === 0 ? (

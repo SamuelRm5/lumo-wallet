@@ -61,7 +61,7 @@ const CreateAccount = () => {
             ref={nameRef}
             value={inputs.name}
             onChange={(e) => setInputs({ ...inputs, name: e.target.value })}
-            className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-blue-600 bg-white"
+            className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-primary bg-white"
             type="text"
           />
         </div>
@@ -74,14 +74,14 @@ const CreateAccount = () => {
             onChange={(e) =>
               setInputs({ ...inputs, description: e.target.value })
             }
-            className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-blue-600 bg-white"
+            className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-primary bg-white"
             type="text"
           />
         </div>
         <button
           disabled={loading}
           type="submit"
-          className="mt-10 w-full h-[40px] bg-blue-600 text-white rounded p-2 px-4 hover:bg-blue-700 transition-colors"
+          className="mt-10 w-full h-[40px] bg-primary text-white rounded p-2 px-4 hover:bg-primary-800 transition-colors"
         >
           {loading ? (
             <p className="text-white w-full flex items-center justify-center">

@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children }) => {
           <Icon
             icon="mingcute:loading-line"
             fontSize={40}
-            className="animate-spin text-blue-500"
+            className="animate-spin text-primary-500"
           />
           <p className="mt-4 text-gray-600">Validando sesión...</p>
         </div>

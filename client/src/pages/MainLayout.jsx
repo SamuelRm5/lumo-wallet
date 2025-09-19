@@ -80,7 +80,7 @@ const MainLayout = () => {
       <div className="shrink-0 w-full h-12 bg-gray-100 flex items-center justify-between px-4 shadow">
         <button
           onClick={navigationInfo.action}
-          className="flex items-center gap-2 rounded-xl text-blue-600 hover:text-blue-800 transition-colors"
+          className="flex items-center gap-2 rounded-xl text-primary hover:text-primary-700 transition-colors"
         >
           <Icon
             icon="icon-park-outline:left"
@@ -94,10 +94,10 @@ const MainLayout = () => {
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
+            className="flex items-center gap-2 text-gray-700 hover:text-primary transition-colors"
           >
             <span className="text-sm hidden sm:block">{user?.nombre}</span>
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
               <Icon
                 icon="material-symbols:person"
                 className="text-white text-lg"
@@ -150,13 +150,13 @@ const MainLayout = () => {
         <Outlet />
       </div>
 
-      <aside className="shrink-0 w-full shadow bg-blue-600 h-[50px] flex items-center justify-around text-2xl rounded-t-xl">
+      <aside className="shrink-0 w-full shadow bg-primary h-[50px] flex items-center justify-around text-2xl rounded-t-xl overflow-hidden">
         <NavLink
           to="/home"
           className={`flex items-center justify-center h-full w-full ${
             isHomeActive
-              ? "bg-blue-700 text-white"
-              : "text-blue-300 hover:text-white transition-colors"
+              ? "bg-primary-800 text-white"
+              : "text-primary-300 hover:text-white transition-colors"
           }`}
         >
           <Icon icon="akar-icons:home" />
@@ -166,8 +166,8 @@ const MainLayout = () => {
           to="/accounts/deuda"
           className={`flex items-center justify-center h-full w-full ${
             isAccountsActive
-              ? "bg-blue-700 text-white"
-              : "text-blue-300 hover:text-white transition-colors"
+              ? "bg-primary-800 text-white"
+              : "text-primary-300 hover:text-white transition-colors"
           }`}
         >
           <Icon icon="material-symbols:account-balance-outline" />
@@ -177,8 +177,8 @@ const MainLayout = () => {
           to="/deposites"
           className={`flex items-center justify-center h-full w-full ${
             isDepositesActive
-              ? "bg-blue-700 text-white"
-              : "text-blue-300 hover:text-white transition-colors"
+              ? "bg-primary-800 text-white"
+              : "text-primary-300 hover:text-white transition-colors"
           }`}
         >
           <Icon icon="healthicons:low-income-level-outline-24px" />

@@ -71,7 +71,7 @@ const Login = () => {
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
             <Icon
               icon="material-symbols:account-balance-outline"
               className="text-white text-2xl"
@@ -100,7 +100,7 @@ const Login = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                 errors.email ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="tu@email.com"
@@ -120,7 +120,7 @@ const Login = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                 errors.password ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="Tu contraseña"
@@ -134,7 +134,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="w-full bg-primary text-white p-3 rounded-lg hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loading ? (
               <Icon
