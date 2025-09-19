@@ -12,5 +12,6 @@ router.post("/login", authController.login);
 router.get("/validate", authMiddleware, authController.validateToken);
 router.get("/profile", authMiddleware, authController.getProfile);
 router.put("/profile", authMiddleware, authController.updateProfile);
+router.put("/change-password", authMiddleware, authController.changePassword);
 
 export default router;

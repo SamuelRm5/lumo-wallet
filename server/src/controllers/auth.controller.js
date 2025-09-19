@@ -36,9 +36,8 @@ const register = async (req, res) => {
 				email: usuario.email,
 			},
 			process.env.JWT_SECRET,
-			{ expiresIn: "7d" },
+			{ expiresIn: "365d" }, // 1 año para uso familiar
 		);
-
 		res.status(201).json({
 			token,
 			user: {
@@ -89,7 +88,7 @@ const login = async (req, res) => {
 				email: usuario.email,
 			},
 			process.env.JWT_SECRET,
-			{ expiresIn: "7d" },
+			{ expiresIn: "30d" }, // 30 días para uso familiar
 		);
 
 		res.json({
@@ -112,8 +111,10 @@ const validateToken = async (req, res) => {
 	try {
 		// El middleware ya validó el token y estableció req.userId
 		const usuario = await Usuarios.findByPk(req.userId, {
-			attributes: ["id", "nombre", "email"], // Excluir password
+			attributes: ["id", "nombre", "email", "estado"], // Excluir password
 		});
+
+		console.log("Usuario validado:", usuario, req.userId);
 
 		if (!usuario || usuario.estado !== "activo") {
 			return res.status(401).json({
@@ -202,10 +203,80 @@ const updateProfile = async (req, res) => {
 	}
 };
 
+const changePassword = async (req, res) => {
+	const { currentPassword, newPassword } = req.body;
+
+	try {
+		// Validar campos requeridos
+		if (!currentPassword || !newPassword) {
+			return res.status(400).json({
+				error: "Contraseña actual y nueva contraseña son requeridas",
+			});
+		}
+
+		// Validar longitud mínima
+		if (newPassword.length < 6) {
+			return res.status(400).json({
+				error: "La nueva contraseña debe tener al menos 6 caracteres",
+			});
+		}
+
+		// Buscar usuario
+		const usuario = await Usuarios.findByPk(req.userId);
+
+		if (!usuario) {
+			return res.status(404).json({
+				error: "Usuario no encontrado",
+			});
+		}
+
+		// Verificar contraseña actual
+		const isValidCurrentPassword = await bcrypt.compare(
+			currentPassword,
+			usuario.password,
+		);
+
+		if (!isValidCurrentPassword) {
+			return res.status(401).json({
+				error: "Contraseña actual incorrecta",
+			});
+		}
+
+		// Verificar que la nueva contraseña sea diferente
+		const isSamePassword = await bcrypt.compare(
+			newPassword,
+			usuario.password,
+		);
+
+		if (isSamePassword) {
+			return res.status(400).json({
+				error: "La nueva contraseña debe ser diferente a la actual",
+			});
+		}
+
+		// Hash de la nueva contraseña
+		const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+		// Actualizar contraseña
+		usuario.password = hashedNewPassword;
+		await usuario.save();
+
+		res.json({
+			message: "Contraseña actualizada exitosamente",
+		});
+	} catch (error) {
+		console.error("Error en changePassword:", error);
+		res.status(500).json({
+			error: "Error interno del servidor",
+		});
+	}
+};
+
 export default {
 	register,
 	login,
 	validateToken,
 	getProfile,
 	updateProfile,
+	changePassword,
 };
