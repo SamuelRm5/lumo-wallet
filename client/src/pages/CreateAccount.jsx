@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../services/api";
 import { Icon } from "@iconify/react/dist/iconify.js";
 
 const CreateAccount = () => {
   const { type } = useParams();
+  const nameRef = useRef(null);
   const navigate = useNavigate();
 
   const [loading, setLoading] = React.useState(false);
@@ -41,6 +42,10 @@ const CreateAccount = () => {
     }
   };
 
+  useEffect(() => {
+    nameRef.current?.focus();
+  }, []);
+
   return (
     <div>
       <h1 className="font-semibold text-lg grid">
@@ -53,6 +58,7 @@ const CreateAccount = () => {
             Nombre de la cuenta
           </label>
           <input
+            ref={nameRef}
             value={inputs.name}
             onChange={(e) => setInputs({ ...inputs, name: e.target.value })}
             className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-blue-600 bg-white"

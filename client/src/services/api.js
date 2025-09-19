@@ -1,13 +1,88 @@
 import axios from "axios";
 
-// Asegúrate de configurar la baseURL si aún no lo has hecho
-//Obten el dominio desde el env
+// Crear instancia de axios
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1",
-  timeout: 5000,
+  timeout: 10000,
 });
 
+// ✅ Interceptor para manejar errores de autenticación
+instance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expirado o inválido
+      localStorage.removeItem("token");
+      window.dispatchEvent(new CustomEvent("auth:token-expired"));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const api = {
+  // ✅ Configurar token de autorización
+  setAuthToken: (token) => {
+    if (token) {
+      instance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+  },
+
+  // ✅ Limpiar token de autorización
+  clearAuthToken: () => {
+    delete instance.defaults.headers.common["Authorization"];
+  },
+
+  // ===== ENDPOINTS DE AUTENTICACIÓN =====
+
+  // ✅ Login de usuario
+  login: async (email, password) => {
+    try {
+      const response = await instance.post("/auth/login", {
+        email,
+        password,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || "Error al iniciar sesión");
+    }
+  },
+
+  // ✅ Validar token
+  validateToken: async () => {
+    try {
+      const response = await instance.get("/auth/validate");
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || "Token inválido");
+    }
+  },
+
+  // ✅ Obtener perfil de usuario
+  getProfile: async () => {
+    try {
+      const response = await instance.get("/auth/profile");
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || "Error al obtener perfil");
+    }
+  },
+
+  // ✅ Cambiar contraseña
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      const response = await instance.put("/auth/change-password", {
+        currentPassword,
+        newPassword,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.error || "Error al cambiar contraseña"
+      );
+    }
+  },
+
+  // ===== ENDPOINTS EXISTENTES (Ya protegidos por token) =====
   getAccounts: async () => {
     try {
       const response = await instance.get("/cuentas");

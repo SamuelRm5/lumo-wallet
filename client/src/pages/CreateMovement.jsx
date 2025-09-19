@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../services/api";
 import { Icon } from "@iconify/react/dist/iconify.js";
@@ -15,29 +15,43 @@ const getFechaColombia = () => {
 
 const CreateMovement = () => {
   const { idType, type } = useParams();
+  const amountRef = useRef(null);
   const navigate = useNavigate();
 
   const [loadingData, setLoadingData] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [amountFormat, setAmountFormat] = useState("$ 0");
+  const [amountFormat, setAmountFormat] = useState("");
   const [inputs, setInputs] = useState({
     monto: 0,
     descripcion: "",
-    tipo: "ingreso",
+    tipo: "egreso",
     fecha: getFechaColombia(),
   });
 
   const handleAmountChange = (e) => {
-    const value = e.target.value.replace(/[^0-9.]/g, ""); // Eliminar caracteres no numéricos
-    const formattedValue = value
-      ? `$ ${parseFloat(value).toLocaleString()}`
-      : "$ 0";
+    // Obtener solo los dígitos del input
+    const value = e.target.value.replace(/[^0-9]/g, "");
+
+    // Convertir a número
+    const numericValue = value === "" ? 0 : parseInt(value, 10);
+
+    // Formatear para mostrar con separadores de miles
+    const formattedValue =
+      numericValue === 0 ? "" : numericValue.toLocaleString();
+
+    // Actualizar el estado visual y numérico
     setAmountFormat(formattedValue);
-    setInputs({ ...inputs, monto: parseFloat(value) || 0 });
+    setInputs({ ...inputs, monto: numericValue });
   };
 
   const createMovement = async (e) => {
     e.preventDefault();
+
+    // Validar que el monto sea mayor a 0
+    if (inputs.monto <= 0) {
+      alert("El monto debe ser mayor a 0");
+      return;
+    }
 
     const request = type === "edit" ? api.updateMovement : api.createMovement;
 
@@ -86,7 +100,7 @@ const CreateMovement = () => {
             .tz("America/Bogota")
             .format("YYYY-MM-DDTHH:mm"),
         });
-        setAmountFormat(`$ ${response.movimiento.monto.toLocaleString()}`);
+        setAmountFormat(response.movimiento.monto.toLocaleString());
       } catch (error) {
         console.error("Error al obtener el movimiento:", error);
         alert("Error al obtener el movimiento");
@@ -99,6 +113,21 @@ const CreateMovement = () => {
       fetchMovements();
     } else setLoadingData(false);
   }, [type, idType, navigate]);
+
+  useEffect(() => {
+    if (amountRef.current && !loadingData) {
+      amountRef.current.focus();
+
+      // Si estamos editando, poner el cursor al final del valor
+      if (type === "edit" && amountFormat) {
+        const length = amountFormat.length;
+        amountRef.current.setSelectionRange(length, length);
+      } else {
+        // Si es nuevo movimiento, poner al inicio
+        amountRef.current.setSelectionRange(0, 0);
+      }
+    }
+  }, [loadingData, amountFormat, type]);
 
   return (
     <div>
@@ -144,6 +173,26 @@ const CreateMovement = () => {
             </div>
           </div>
 
+          {/* Monto */}
+          <div>
+            <label className="text-sm text-neutral-500">Monto</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-600 pointer-events-none">
+                $
+              </span>
+              <input
+                ref={amountRef}
+                value={amountFormat}
+                onChange={handleAmountChange}
+                className="border border-neutral-300 rounded w-full p-2 pl-8 pr-4 focus:outline-blue-600 bg-white"
+                inputMode="numeric"
+                pattern="[0-9,]*"
+                placeholder="0"
+                required
+              />
+            </div>
+          </div>
+
           {/* Descripción */}
           <div>
             <label className="text-sm text-neutral-500">Descripción</label>
@@ -154,18 +203,6 @@ const CreateMovement = () => {
               }
               className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-blue-600 bg-white"
               type="text"
-            />
-          </div>
-
-          {/* Monto */}
-          <div>
-            <label className="text-sm text-neutral-500">Monto</label>
-            <input
-              value={amountFormat}
-              onChange={handleAmountChange}
-              className="border border-neutral-300 rounded w-full p-2 px-4 focus:outline-blue-600 bg-white"
-              inputMode="text"
-              placeholder="$0"
             />
           </div>
 

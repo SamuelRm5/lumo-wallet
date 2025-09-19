@@ -11,7 +11,7 @@ const CuentaCard = ({ cuenta }) => {
       <div>
         <h2 className="text-lg font-semibold text-left">{cuenta.nombre}</h2>
         <p className="text-sm text-start text-gray-500 capitalize">
-          {cuenta.tipo}
+          {cuenta.descripcion || "Sin descripción"}
         </p>
       </div>
       <div
