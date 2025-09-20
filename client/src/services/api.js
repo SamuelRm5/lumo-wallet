@@ -110,12 +110,41 @@ export const api = {
       throw error;
     }
   },
-  getMovements: async (accountId) => {
+  getMovements: async (accountId, page = 1) => {
     try {
-      const response = await instance.get(`/movimientos/${accountId}`);
+      const response = await instance.get(
+        `/movimientos/${accountId}?page=${page}`
+      );
       return response.data;
     } catch (error) {
       console.error("Error fetching movements:", error);
+      throw error;
+    }
+  },
+  // 🔍 Buscar movimientos por rango de fechas con paginación
+  getMovementsByDateRange: async (
+    fechaInicio,
+    fechaFin,
+    cuentaId,
+    tipo,
+    page = 1
+  ) => {
+    try {
+      const params = new URLSearchParams({
+        fechaInicio,
+        fechaFin,
+        page: page.toString(),
+      });
+
+      if (cuentaId) params.append("cuentaId", cuentaId);
+      if (tipo) params.append("tipo", tipo);
+
+      const response = await instance.get(
+        `/movimientos/search/date-range?${params}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching movements by date range:", error);
       throw error;
     }
   },

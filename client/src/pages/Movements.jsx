@@ -1,33 +1,33 @@
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../services/api";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import MovementCard from "../components/MovementCard";
+import { useMovementsWithFilters } from "../hooks/useMovementsWithFilters";
+import AccountHeader from "../components/AccountHeader";
+import MovementFilters from "../components/MovementFilters";
+import MovementsList from "../components/MovementsList";
 
 const Movements = () => {
   const { idAccount } = useParams();
 
-  const [account, setAccount] = useState({});
-  const [movements, setMovements] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      try {
-        setLoading(true);
-        const response = await api.getMovements(idAccount);
-
-        setAccount(response.cuenta);
-        setMovements(response.movimientos);
-      } catch (error) {
-        console.error("Error al obtener cuentas por tipo:", error);
-        throw error;
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAccounts();
-  }, [idAccount]);
+  // 🎯 Hook integrador con toda la lógica
+  const {
+    account,
+    movements,
+    loading,
+    loadingMore,
+    pagination,
+    filterOpen,
+    dateFilter,
+    filterType,
+    toggleFilter,
+    setStartDate,
+    setEndDate,
+    setType,
+    handleApplyFilter,
+    handleClearFilter,
+    isFilterValid,
+    getBalance,
+    lastElementRef,
+  } = useMovementsWithFilters(idAccount);
 
   return (
     <div className="p-4">
@@ -41,57 +41,40 @@ const Movements = () => {
         </div>
       ) : (
         <div>
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">
-              {account.nombre}
-            </h1>
+          {/* 🏦 Header de la cuenta */}
+          <AccountHeader account={account} balance={getBalance()} />
 
-            <span
-              className={`text-lg font-semibold ${
-                movements.reduce(
-                  (t, m) => (m.tipo === "ingreso" ? t + m.monto : t - m.monto),
-                  0
-                ) >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
-            >
-              {movements
-                .reduce((total, movement) => {
-                  return movement.tipo === "ingreso"
-                    ? total + movement.monto
-                    : total - movement.monto;
-                }, 0)
-                .toLocaleString("es-CO", {
-                  style: "currency",
-                  currency: "COP",
-                  minimumFractionDigits: 0,
-                })}
-            </span>
-          </div>
-
-          {/* Botón de agregar movimiento */}
+          {/* ➕ Botón de agregar movimiento */}
           <Link
             to="create"
-            className="bg-primary text-white w-full rounded-xl shadow flex items-center gap-3 p-3 mb-5 hover:bg-primary-800 transition"
+            className="bg-primary text-white w-full rounded-xl shadow flex items-center gap-3 p-3 mb-3 hover:bg-primary-800 transition"
           >
             <Icon icon="mdi:plus" fontSize={24} />
             <span className="font-medium text-sm">Agregar movimiento</span>
           </Link>
 
-          {/* Lista de movimientos */}
-          <div className="grid gap-2">
-            {movements.length > 0 ? (
-              movements.map((movement) => (
-                <MovementCard key={movement.id} movement={movement} />
-              ))
-            ) : (
-              <p className="text-center text-gray-500 italic">
-                No hay movimientos registrados.
-              </p>
-            )}
-          </div>
+          {/* 🔍 Filtros de movimientos */}
+          <MovementFilters
+            filterOpen={filterOpen}
+            dateFilter={dateFilter}
+            filterType={filterType}
+            onToggleFilter={toggleFilter}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onTypeChange={setType}
+            onApplyFilter={handleApplyFilter}
+            onClearFilter={handleClearFilter}
+            canApplyFilter={isFilterValid()}
+          />
+
+          {/* 📋 Lista de movimientos con scroll infinito */}
+          <MovementsList
+            movements={movements}
+            loading={false} // El loading principal ya se maneja arriba
+            loadingMore={loadingMore}
+            pagination={pagination}
+            lastElementRef={lastElementRef}
+          />
         </div>
       )}
     </div>

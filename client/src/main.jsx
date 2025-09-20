@@ -6,7 +6,7 @@ import "./index.css";
 // ✅ Listener global para auto-logout cuando el token expira
 window.addEventListener("auth:token-expired", () => {
   console.log("Token expirado detectado, recargando página...");
-  // window.location.reload();
+  window.location.reload();
 });
 
 createRoot(document.getElementById("root")).render(

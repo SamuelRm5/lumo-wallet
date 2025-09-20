@@ -19,6 +19,7 @@ const MainLayout = () => {
 
     if (currentPath.startsWith("/accounts/movements/")) {
       const segments = currentPath.split("/");
+
       const accountType = segments[4] || "deuda";
       const typeNames = {
         deuda: "Cuentas de Deuda",
@@ -26,7 +27,7 @@ const MainLayout = () => {
         fuente: "Fuentes de Ingreso",
       };
       return {
-        action: () => navigate(`/accounts/${accountType}`),
+        action: () => navigate(-1),
         text: typeNames[accountType] || "Cuentas",
       };
     } else if (currentPath.startsWith("/accounts/create/")) {
@@ -41,7 +42,7 @@ const MainLayout = () => {
         action: () => navigate(`/accounts/${accountType}`),
         text: typeNames[accountType] || "Cuentas",
       };
-    } else if (currentPath.startsWith("/accounts/")) {
+    } else if (currentPath.startsWith("/accounts/deudas")) {
       return {
         action: () => navigate("/home"),
         text: "Inicio",
@@ -97,11 +98,8 @@ const MainLayout = () => {
             className="flex items-center gap-2 text-gray-700 hover:text-primary transition-colors"
           >
             <span className="text-sm hidden sm:block">{user?.nombre}</span>
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <Icon
-                icon="material-symbols:person"
-                className="text-white text-lg"
-              />
+            <div className="text-primary text-xl rounded-full flex items-center justify-center">
+              <Icon icon="streamline-freehand:smiley-rich" />
             </div>
           </button>
 
