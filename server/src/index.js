@@ -31,6 +31,9 @@ app.use(json());
 app.use("/api/v1/auth", v1AuthRoutes);
 app.use("/api/v1/cuentas", v1CuentasRoutes);
 app.use("/api/v1/movimientos", v1MovimientosRoutes);
+app.get("/api/health", (req, res) => {
+	res.status(200).json({ status: "ok" });
+});
 
 (async () => {
 	try {
