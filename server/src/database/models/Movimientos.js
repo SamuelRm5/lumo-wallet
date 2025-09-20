@@ -46,6 +46,46 @@ export default function (sequelize) {
 			sequelize,
 			modelName: "movimiento",
 			tableName: "movimientos",
+			// 🚀 ÍNDICES DE RENDIMIENTO OPTIMIZADOS
+			indexes: [
+				{
+					// Índice compuesto crítico para consultas principales
+					name: "idx_movimientos_cuenta_estado",
+					fields: ["cuentaId", "estado"],
+					using: "BTREE",
+					comment:
+						"Optimiza queries de cálculo de totales por cuenta",
+				},
+				{
+					// Índice para filtros por tipo de movimiento
+					name: "idx_movimientos_tipo",
+					fields: ["tipo"],
+					using: "BTREE",
+					comment: "Filtros por ingreso/egreso",
+				},
+				{
+					// Índice temporal para ordenamientos y analytics
+					name: "idx_movimientos_fecha",
+					fields: ["createdAt"],
+					using: "BTREE",
+					comment: "Ordenamientos temporales y filtros por fecha",
+				},
+				{
+					// Índice compuesto para analytics y reportes avanzados
+					name: "idx_movimientos_analytics",
+					fields: ["cuentaId", "createdAt", "tipo", "estado"],
+					using: "BTREE",
+					comment: "Optimización para gráficos y reportes temporales",
+				},
+				{
+					// 📅 NUEVO: Índice optimizado para rangos de fechas
+					name: "idx_movimientos_fecha_rango",
+					fields: ["cuentaId", "createdAt", "estado"],
+					using: "BTREE",
+					comment:
+						"Optimizado para búsquedas por rango de fechas específico por cuenta",
+				},
+			],
 		},
 	);
 

@@ -2,7 +2,17 @@
 
 ## 🎯 **RESUMEN EJECUTIVO**
 
-Esta propuesta detalla la implementación de **gráficos financieros interactivos** para la aplicación cuentas-meli, aprovechando los datos existentes de cuentas y movimientos con **separación por usuario** para crear insights valiosos que mejoren la toma de decisiones financieras familiares.
+Esta propuesta detalla la implementación de **gráficos financieros interactivos** para la aplicación cuentas-meli, aprovechando los datos existentes de cuentas y movimientos con **separación por usuario** para crear insights valiosos qu### **🚀 FASE 2 - Distribución y Patrones (2 semanas)**
+1. **✅ Distribución de gastos:** Pie + Bar charts interactivos
+2. **✅ Calendario de gastos:** Heatmap básico
+3. **✅ Filtros y controles:** Selectores de período
+4. **✅ Búsquedas por fecha:** Endpoint optimizado para rangos
+
+### **🔧 FASE 3 - Pulimiento y Optimización (2 semanas)**
+1. **✅ Métricas avanzadas:** KPIs y ratios financieros
+2. **✅ Exportación:** PDF/PNG de gráficos
+3. **✅ Responsive:** Optimización móvil
+4. **✅ Testing:** Pruebas y documentaciónla toma de decisiones financieras familiares.
 
 ---
 
@@ -12,8 +22,25 @@ Esta propuesta detalla la implementación de **gráficos financieros interactivo
 
 #### **Tabla Usuarios:**
 ```sql
-- id, nombre, email, createdAt, estado
-```
+- id, nombre, email, crea## 🎯 **VALOR AGREGADO PARA USUARIOS**
+
+### **📈 Para Gestión Personal:**
+- **Visibilidad financiera:** Situación clara de cada cuenta
+- **Patrones identificados:** Detectar gastos excesivos o hábitos
+- **Metas visuales:** Progreso hacia objetivos personales
+- **Educación financiera:** Gráficos ayudan a entender conceptos
+
+### **💼 Para Toma de Decisiones:**
+- **Análisis visual:** Datos claros para mejores elecciones
+- **Planificación:** Proyecciones y tendencias para presupuestar
+- **Control:** Identificar desviaciones rápidamente
+- **Motivación:** Ver progreso visualmente es motivador
+
+### **📅 Para Búsquedas Temporales:**
+- **Rangos personalizados:** Buscar movimientos por fechas específicas
+- **Estadísticas automáticas:** Totales y promedios del período
+- **Filtros avanzados:** Por cuenta, tipo de movimiento
+- **Reportes rápidos:** Datos organizados para análisis
 
 #### **Tabla Cuentas:**
 ```sql
@@ -225,26 +252,6 @@ const BalancePatrimonial = ({ usuarioId }) => {
 
 ---
 
-### **5. 📊 COMPARATIVA FAMILIAR (OPCIONAL)**
-**Tipo:** Multi-line Chart + Bar Chart  
-**Objetivo:** Comparar rendimiento financiero entre usuarios familiares
-
-#### **Datos a mostrar:**
-```javascript
-[
-  { mes: '2025-09', usuario: 'Papá', gastos: 800000, ingresos: 2000000 },
-  { mes: '2025-09', usuario: 'Mamá', gastos: 600000, ingresos: 1500000 },
-  { mes: '2025-09', usuario: 'Hijo', gastos: 200000, ingresos: 300000 }
-]
-```
-
-#### **Consideraciones de Privacidad:**
-- **Opt-in:** Cada usuario decide si compartir sus datos
-- **Datos agregados:** Solo totales, no detalles específicos
-- **Control parental:** Los padres pueden ver datos de hijos menores
-
----
-
 ## 🏗️ **ARQUITECTURA TÉCNICA**
 
 ### **📦 Dependencias Nuevas:**
@@ -292,8 +299,7 @@ client/src/
 │   │   ├── TendenciasChart.jsx
 │   │   ├── DistribucionChart.jsx
 │   │   ├── BalanceChart.jsx
-│   │   ├── CalendarioChart.jsx
-│   │   └── ComparativaChart.jsx
+│   │   └── CalendarioChart.jsx
 │   └── analytics/
 │       ├── PeriodSelector.jsx
 │       ├── ChartContainer.jsx
@@ -571,19 +577,19 @@ const analytics = {
 
 ## 💰 **ESTIMACIÓN DE ESFUERZO**
 
-### **Backend (40 horas):**
-- Analytics controller: 16h
-- Endpoints y SQL: 12h
-- Testing y optimización: 8h
-- Documentación: 4h
+### **Backend (35 horas):**
+- Analytics controller: 14h
+- Endpoints y SQL: 10h
+- Búsquedas por fecha: 6h
+- Testing y optimización: 5h
 
-### **Frontend (60 horas):**
+### **Frontend (50 horas):**
 - Setup y configuración: 8h
-- Componentes de gráficos: 32h
-- Página Analytics: 12h
-- Responsive y UX: 8h
+- Componentes de gráficos: 28h
+- Página Analytics: 10h
+- Responsive y UX: 4h
 
-### **🎯 Total Estimado: 100 horas (2.5 meses a tiempo parcial)**
+### **🎯 Total Estimado: 85 horas (2 meses a tiempo parcial)**
 
 ---
 
