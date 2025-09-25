@@ -16,6 +16,7 @@ const getFechaColombia = () => {
 const CreateMovement = () => {
   const { idType, type } = useParams();
   const amountRef = useRef(null);
+  const cursorPositionedRef = useRef(false);
   const navigate = useNavigate();
 
   const [loadingData, setLoadingData] = useState(true);
@@ -29,8 +30,12 @@ const CreateMovement = () => {
   });
 
   const handleAmountChange = (e) => {
+    const input = e.target;
+    const cursorPosition = input.selectionStart;
+    const inputValue = input.value;
+
     // Obtener solo los dígitos del input
-    const value = e.target.value.replace(/[^0-9]/g, "");
+    const value = inputValue.replace(/[^0-9]/g, "");
 
     // Convertir a número
     const numericValue = value === "" ? 0 : parseInt(value, 10);
@@ -42,6 +47,34 @@ const CreateMovement = () => {
     // Actualizar el estado visual y numérico
     setAmountFormat(formattedValue);
     setInputs({ ...inputs, monto: numericValue });
+
+    // Preservar la posición del cursor de manera más simple
+    requestAnimationFrame(() => {
+      if (amountRef.current && document.activeElement === amountRef.current) {
+        // Calcular cuántos dígitos hay antes de la posición del cursor
+        const textBeforeCursor = inputValue.substring(0, cursorPosition);
+        const digitsBeforeCursor = textBeforeCursor.replace(
+          /[^0-9]/g,
+          ""
+        ).length;
+
+        // Encontrar la posición equivalente en el valor formateado
+        let newPosition = 0;
+        let digitCount = 0;
+
+        for (let i = 0; i < formattedValue.length; i++) {
+          if (formattedValue[i] !== ",") {
+            digitCount++;
+            if (digitCount > digitsBeforeCursor) {
+              break;
+            }
+          }
+          newPosition = i + 1;
+        }
+
+        amountRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    });
   };
 
   const createMovement = async (e) => {
@@ -114,20 +147,23 @@ const CreateMovement = () => {
     } else setLoadingData(false);
   }, [type, idType, navigate]);
 
+  // Efecto para enfocar el input cuando termine de cargar
   useEffect(() => {
     if (amountRef.current && !loadingData) {
       amountRef.current.focus();
 
-      // Si estamos editando, poner el cursor al final del valor
-      if (type === "edit" && amountFormat) {
-        const length = amountFormat.length;
-        amountRef.current.setSelectionRange(length, length);
-      } else {
-        // Si es nuevo movimiento, poner al inicio
-        amountRef.current.setSelectionRange(0, 0);
+      // Solo posicionar cursor al final si estamos editando y no lo hemos hecho antes
+      if (type === "edit" && amountFormat && !cursorPositionedRef.current) {
+        setTimeout(() => {
+          if (amountRef.current) {
+            const length = amountFormat.length;
+            amountRef.current.setSelectionRange(length, length);
+            cursorPositionedRef.current = true;
+          }
+        }, 0);
       }
     }
-  }, [loadingData, amountFormat, type]);
+  }, [loadingData, type, amountFormat]);
 
   return (
     <div>
