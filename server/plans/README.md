@@ -10,8 +10,8 @@ Detalle de ejecución de las fases definidas en `docs/BACKEND.md` §12. Aquí no
 | 1 | [FASE-1.md](FASE-1.md) | Prisma sobre el esquema actual, sin cambiar el contrato | cerrada. Deriva contra producción verificada: ninguna |
 | 2 | [FASE-2.md](FASE-2.md) | Blindaje: validación, rate limiting, registro cerrado | cerrada |
 | 3 | [FASE-3.md](FASE-3.md) | Esquema nuevo y migración del histórico | cerrada. Aplicada en local sobre los datos reales |
-| 4 | [FASE-4.md](FASE-4.md) | API nueva: operaciones, conciliación, categorías | siguiente |
-| 5 | [FASE-5.md](FASE-5.md) | Operación: recurrentes, push, sync | pendiente |
+| 4 | [FASE-4.md](FASE-4.md) | API nueva: operaciones, conciliación, categorías | cerrada |
+| 5 | [FASE-5.md](FASE-5.md) | Operación: recurrentes, push, sync | siguiente |
 
 ## Reglas comunes
 

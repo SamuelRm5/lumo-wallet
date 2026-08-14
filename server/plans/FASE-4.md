@@ -118,6 +118,33 @@ Reversión: los endpoints nuevos conviven con los viejos, así que una fase inco
 
 ---
 
+## Estado de ejecución
+
+Cerrada. 74 tests en verde sobre una base de pruebas que se recrea y migra en cada ejecución.
+
+| Endpoint | Cubierto por tests |
+|---|---|
+| `/auth` register, login, refresh, logout, me, password | sí |
+| `/accounts` CRUD, saldo, `409` al borrar con saldo | sí |
+| `/accounts/:id/reconcile` | sí, faltante, sobrante, diferencia cero y cuenta `source` |
+| `/summary` | sí |
+| `/operations` CRUD, cursor, filtros, `stats` | sí |
+| `/categories` CRUD | sí |
+| `/recurring-rules` CRUD | sí |
+| `POST /operations` con `Idempotency-Key` | sí |
+
+Lo que los tests protegen de verdad, más allá del CRUD:
+
+- El invariante de §6.2 en las cuatro formas, y el recorrido de `LOGICA_NEGOCIO.md` §6 cerrando en cada paso.
+- Que los reportes **no cuenten cada operación dos veces**, que es el error más probable de toda la fase.
+- Que prestar plata no aparezca como gasto.
+- Que la paginación por cursor no repita ni se salte filas.
+- Que reusar un refresh token ya consumido cierre todas las sesiones.
+- Aislamiento entre usuarios en cada recurso.
+
 ## Desviaciones
 
-Ninguna prevista. Si aparece, se anota aquí.
+- **Las rutas viejas se retiraron en esta fase, no después.** El plan las mantenía vivas hasta que la app móvil las reemplazara, pero la Fase 3 renombró sus tablas, así que solo podían responder `500`. El cliente web que las consumía se archiva.
+- **La idempotencia necesitó una columna.** `operations.idempotencyKey` con índice único por usuario, en la migración `20260814120000_idempotency_key`. MySQL no considera iguales dos `NULL` en un índice único, así que las operaciones sin clave no chocan entre sí.
+- **`GET /auth/validate` y `GET /profile` desaparecen** a favor de `GET /auth/me`, y `PUT /auth/change-password` pasa a `PUT /auth/password`, como define §7.1.
+- El job que ejecuta las reglas recurrentes es de la Fase 5. Aquí solo está el CRUD y el cálculo de `nextRunAt`.

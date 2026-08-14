@@ -6,6 +6,7 @@ import { forbidden } from "../../lib/errors.js";
 import {
 	changePasswordSchema,
 	loginSchema,
+	refreshSchema,
 	registerSchema,
 	updateProfileSchema,
 } from "../../schemas/auth.schema.js";
@@ -30,6 +31,13 @@ router.post(
 	authController.register,
 );
 router.post("/login", authLimiter, validate(loginSchema), authController.login);
+router.post(
+	"/refresh",
+	authLimiter,
+	validate(refreshSchema),
+	authController.refresh,
+);
+router.post("/logout", validate(refreshSchema), authController.logout);
 
 // Rutas protegidas (requieren autenticación)
 router.get("/me", authMiddleware, authController.me);

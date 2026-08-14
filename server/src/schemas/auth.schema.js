@@ -32,6 +32,14 @@ export const loginSchema = {
 	}),
 };
 
+export const refreshSchema = {
+	body: z.object({
+		refreshToken: z
+			.string({ required_error: "El refresh token es obligatorio" })
+			.min(1, "El refresh token no puede estar vacío"),
+	}),
+};
+
 export const updateProfileSchema = {
 	body: z
 		.object({

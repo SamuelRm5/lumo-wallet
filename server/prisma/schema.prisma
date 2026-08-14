@@ -145,6 +145,9 @@ model Operation {
   status          OperationStatus @default(confirmed)
   origin          OperationOrigin @default(manual)
   recurringRuleId Int?
+  /// Clave de idempotencia del cliente. En red móvil un POST puede expirar por
+  /// timeout habiéndose aplicado, y sin esto el reintento duplica la operación
+  idempotencyKey  String?         @db.VarChar(64)
   /// Fecha prevista de la ocurrencia recurrente
   scheduledDate   DateTime?       @db.Date
 
@@ -158,6 +161,7 @@ model Operation {
   entries       Entry[]
 
   @@unique([recurringRuleId, scheduledDate])
+  @@unique([userId, idempotencyKey])
   @@index([userId, date])
   @@index([userId, categoryId, date])
   @@index([userId, status])

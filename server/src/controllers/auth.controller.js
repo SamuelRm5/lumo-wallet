@@ -1,8 +1,12 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { conflict, notFound, unauthenticated, validationError } from "../lib/errors.js";
 import prisma from "../config/prisma.js";
-import env from "../config/env.js";
+import {
+	issueSession,
+	revokeAllForUser,
+	revokeSession,
+	rotateSession,
+} from "../services/auth.service.js";
 
 const CATALOGO_INICIAL = [
 	{ name: "Comida", icon: "food", kind: "expense" },
@@ -26,11 +30,6 @@ const publicUser = user => ({
 	email: user.email,
 });
 
-const signToken = user =>
-	jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, {
-		expiresIn: "30d",
-	});
-
 const register = async (req, res, next) => {
 	const { name, email, password } = req.body;
 
@@ -53,7 +52,7 @@ const register = async (req, res, next) => {
 			},
 		});
 
-		res.status(201).json({ token: signToken(user), user: publicUser(user) });
+		res.status(201).json(await issueSession(user));
 	} catch (error) {
 		next(error);
 	}
@@ -71,7 +70,7 @@ const login = async (req, res, next) => {
 			return next(unauthenticated("Credenciales inválidas"));
 		}
 
-		res.json({ token: signToken(user), user: publicUser(user) });
+		res.json(await issueSession(user));
 	} catch (error) {
 		next(error);
 	}
@@ -143,10 +142,31 @@ const changePassword = async (req, res, next) => {
 			data: { password: await bcrypt.hash(newPassword, 10) },
 		});
 
+		// Cambiar la contraseña cierra todas las sesiones abiertas, que es lo
+		// que hoy no se puede hacer con los tokens de 30 y 365 días
+		await revokeAllForUser(user.id);
+
 		res.json({ message: "Contraseña actualizada exitosamente" });
 	} catch (error) {
 		next(error);
 	}
 };
 
-export default { register, login, me, updateMe, changePassword };
+const refresh = async (req, res, next) => {
+	try {
+		res.json(await rotateSession(req.body.refreshToken));
+	} catch (error) {
+		next(error);
+	}
+};
+
+const logout = async (req, res, next) => {
+	try {
+		await revokeSession(req.body.refreshToken);
+		res.status(204).end();
+	} catch (error) {
+		next(error);
+	}
+};
+
+export default { register, login, refresh, logout, me, updateMe, changePassword };

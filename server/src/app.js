@@ -3,6 +3,7 @@ import {
 	v1AccountsRoutes,
 	v1CategoriesRoutes,
 	v1OperationsRoutes,
+	v1RecurringRoutes,
 	v1SummaryRoutes,
 } from "./v1/routes/index.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
@@ -29,6 +30,7 @@ const createApp = () => {
 	app.use("/api/v1/accounts", v1AccountsRoutes);
 	app.use("/api/v1/categories", v1CategoriesRoutes);
 	app.use("/api/v1/operations", v1OperationsRoutes);
+	app.use("/api/v1/recurring-rules", v1RecurringRoutes);
 	app.use("/api/v1/summary", v1SummaryRoutes);
 
 	app.use(notFoundHandler);

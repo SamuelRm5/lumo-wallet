@@ -35,7 +35,22 @@ const getById = async (req, res, next) => {
 
 const create = async (req, res, next) => {
 	try {
-		const operation = await operations.createOperation(req.userId, req.body);
+		const idempotencyKey = req.get("Idempotency-Key") ?? null;
+
+		if (idempotencyKey) {
+			const previa = await operations.findByIdempotencyKey(
+				req.userId,
+				idempotencyKey,
+			);
+			// Un reintento devuelve 200 con la operación ya creada, no un 201
+			// que haría pensar al cliente que registró una segunda
+			if (previa) return res.status(200).json(serialize(previa));
+		}
+
+		const operation = await operations.createOperation(req.userId, {
+			...req.body,
+			idempotencyKey,
+		});
 		res.status(201).json(serialize(operation));
 	} catch (error) {
 		next(error);

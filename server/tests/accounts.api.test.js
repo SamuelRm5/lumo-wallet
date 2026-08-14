@@ -30,12 +30,12 @@ beforeEach(async () => {
 	const registro = await request(app)
 		.post("/api/v1/auth/register")
 		.send(CREDENCIALES);
-	token = registro.body.token;
+	token = registro.body.accessToken;
 
 	const otro = await request(app)
 		.post("/api/v1/auth/register")
 		.send({ ...CREDENCIALES, email: "otro@lumo.test" });
-	otroToken = otro.body.token;
+	otroToken = otro.body.accessToken;
 });
 
 describe("registro y sesión", () => {

@@ -33,6 +33,13 @@ const schema = z.object({
 	APP_CURRENCY: nonEmpty("APP_CURRENCY no puede estar vacía").default("COP"),
 
 	JWT_SECRET: nonEmpty("JWT_SECRET es obligatoria y no puede estar vacía"),
+	// El access token es corto porque no se puede revocar; la sesión larga la
+	// sostiene el refresh token, que sí
+	ACCESS_TOKEN_TTL: z
+		.string()
+		.regex(/^\d+[smhd]$/, "Formato esperado: 15m, 1h, 7d")
+		.default("15m"),
+	REFRESH_TOKEN_TTL_DAYS: numeric(90, { min: 1 }),
 
 	CORS_ORIGIN: nonEmpty("CORS_ORIGIN no puede estar vacía").default(
 		"http://localhost:5173",

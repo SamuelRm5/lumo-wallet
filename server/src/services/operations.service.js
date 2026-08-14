@@ -257,6 +257,7 @@ export const createOperationWith = async (db, userId, input) => {
 			description: resolved.description ?? null,
 			status: resolved.status ?? "confirmed",
 			origin: resolved.origin ?? "manual",
+			idempotencyKey: resolved.idempotencyKey ?? null,
 			entries: { create: entries },
 		},
 		...OPERATION_SHAPE,
@@ -268,6 +269,20 @@ export const createOperationWith = async (db, userId, input) => {
 // Operación y asientos se escriben juntos o no se escribe ninguno
 export const createOperation = (userId, input) =>
 	prisma.$transaction(tx => createOperationWith(tx, userId, input));
+
+/**
+ * Busca una operación ya creada con esa clave de idempotencia. En red móvil un
+ * POST puede expirar por timeout habiéndose aplicado, y sin esto el reintento
+ * del cliente duplica el gasto.
+ */
+export const findByIdempotencyKey = async (userId, idempotencyKey) => {
+	const previa = await prisma.operation.findFirst({
+		where: { userId, idempotencyKey },
+		...OPERATION_SHAPE,
+	});
+
+	return previa ? present(previa) : null;
+};
 
 export const updateOperation = async (userId, id, input) => {
 	const existing = await prisma.operation.findFirst({ where: { id, userId } });

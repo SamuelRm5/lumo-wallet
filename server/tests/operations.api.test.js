@@ -30,7 +30,7 @@ beforeEach(async () => {
 			email: "samuel@lumo.test",
 			password: "password-de-prueba-123",
 		})
-	).body.token;
+	).body.accessToken;
 
 	otroToken = (
 		await request(app).post("/api/v1/auth/register").send({
@@ -38,7 +38,7 @@ beforeEach(async () => {
 			email: "otro@lumo.test",
 			password: "password-de-prueba-123",
 		})
-	).body.token;
+	).body.accessToken;
 
 	source = await crearCuenta("source", "Salario");
 	cash = await crearCuenta("cash", "Bancolombia");
