@@ -54,6 +54,24 @@ const schema = z.object({
 	RATE_LIMIT_AUTH_WINDOW_MIN: numeric(15, { min: 1 }),
 	RATE_LIMIT_AUTH_MAX: numeric(10, { min: 1 }),
 
+	// El job se puede apagar sin tocar el resto de la aplicación
+	RECURRING_JOB_ENABLED: z
+		.enum(["true", "false"])
+		.default("true")
+		.transform(value => value === "true"),
+	RECURRING_JOB_CRON: nonEmpty("RECURRING_JOB_CRON no puede estar vacía").default(
+		"0 6 * * *",
+	),
+	// Tope de ocurrencias atrasadas por regla y ejecución: una regla con fecha de
+	// inicio de hace tres años no puede generar cientos de operaciones de golpe
+	RECURRING_MAX_CATCHUP: numeric(12, { min: 1 }),
+
+	// Sin token, el envío queda desactivado y solo se registra en el log
+	EXPO_ACCESS_TOKEN: z.string().optional(),
+
+	// Versión mínima del cliente móvil. Vacía significa que no se rechaza ninguna
+	MIN_CLIENT_VERSION: z.string().optional(),
+
 	// La lee también el CLI de Prisma desde .env, así que el nombre es fijo
 	DATABASE_URL: nonEmpty("DATABASE_URL es obligatoria"),
 });

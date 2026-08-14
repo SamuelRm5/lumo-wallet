@@ -2,8 +2,8 @@
 
 Aplicación de finanzas personales/familiares. Monorepo con dos paquetes independientes:
 
-- `server/` — API REST en Node.js + Express + MySQL. Hoy con Sequelize; migra a Prisma en la Fase 1 de `docs/BACKEND.md` §12.
-- `client/` — Cliente web actual en React 19 + Vite (será reemplazado por una app React Native + Expo).
+- `server/` — API REST en Node.js + Express + MySQL con Prisma. Las cinco fases de `docs/BACKEND.md` §12 están ejecutadas; el detalle está en `server/plans/`.
+- `client/` — Cliente web viejo en React 19 + Vite. Habla el contrato anterior, que ya no existe. Se archiva; lo reemplaza una app React Native + Expo.
 
 Documentación, en orden de autoridad:
 
@@ -28,7 +28,7 @@ Documentación, en orden de autoridad:
 const calculateBalance = transactions => { ... };
 ```
 
-El código actual está mayormente en español (`cuentas`, `movimientos`, `monto`, `tipo`, `estado`). Toda línea nueva o modificada se escribe en inglés. La migración completa está descrita en `docs/BACKEND.md`.
+El código del servidor ya está en inglés. Lo único que conserva el español son las tablas `*_legacy`, que son el modelo anterior congelado, y el cliente web, que se archiva.
 
 ### Estilo
 
@@ -57,48 +57,52 @@ El código actual está mayormente en español (`cuentas`, `movimientos`, `monto
 
 ### Modelo de dominio
 
-Tres entidades: usuario, cuenta y movimiento.
+Un evento real es una `operation` con exactamente dos `entries`, uno por cada cuenta que toca. El cliente nunca envía asientos: manda la operación y el servidor deriva las dos filas con el signo aplicado.
 
 La definición funcional completa está en `docs/LOGICA_NEGOCIO.md` y manda sobre cualquier otro documento. Resumen:
 
 Las cuentas tienen un tipo que define su semántica financiera:
 
-- `fuente` — lo que **debería** haber: plata que entró y aún no se gasta. Es la contrapartida de control, no contiene plata.
-- `normal` — lo que **hay**: plata líquida (bancos, efectivo).
-- `deuda` — lo que **me deben**: cuentas por cobrar, plata mía en manos de otro.
+- `source` — lo que **debería** haber: plata que entró y aún no se gasta. Es la contrapartida de control, no contiene plata.
+- `cash` — lo que **hay**: plata líquida (bancos, efectivo).
+- `receivable` — lo que **me deben**: cuentas por cobrar, plata mía en manos de otro.
+- `liability` — lo que **yo debo**: tarjetas y créditos.
 
-Cuidado: `deuda` significa *plata que a ti te deben*, no plata que tú debes. Por eso el dashboard la suma dentro de "Lo que hay". La descripción de `CONTEXTO_PROYECTO.md` ("tarjetas, préstamos") es incorrecta y ese documento está obsoleto.
+Cuidado: `receivable` es *plata que a ti te deben*. El histórico la traía con el signo invertido y la migración lo corrigió (`docs/BACKEND.md` §11.1). La descripción de `CONTEXTO_PROYECTO.md` ("tarjetas, préstamos") es incorrecta y ese documento está obsoleto.
 
-Los movimientos son `ingreso` o `egreso` y pertenecen a una cuenta. El saldo nunca se almacena: se calcula como `SUM(ingresos) - SUM(egresos)` sobre los movimientos activos.
+El saldo nunca se almacena: es la suma de los asientos de operaciones vivas y confirmadas.
 
-Ecuación de control del dashboard: `normal + |deudas| - fuentes = 0`. Un resultado distinto de cero significa **captura incompleta**, no plata sobrante o faltante.
-
-Un evento real (un gasto, un ingreso) afecta siempre **dos** cuentas: la fuente y la cuenta donde está la plata. Hoy el usuario los registra a mano por separado; el rediseño los convierte en una sola operación con dos asientos.
-
-Con la app escribiendo ambos asientos, la ecuación no puede descuadrar y el indicador deja de aportar información. El control pasa a ser la **conciliación**: el usuario informa el saldo real de un depósito y la diferencia se registra como ajuste.
+Ecuación de control: `Σ signed(asientos) = 0`, donde las cuentas `source` cuentan con signo invertido. Se verifica **antes** de escribir; una operación que la rompe se rechaza con `400`. Como la app escribe ambos asientos, el descuadre ya no puede aparecer solo: el control real es la **conciliación**, donde el usuario informa el saldo verdadero de un depósito y la diferencia se registra como ajuste.
 
 ### Reglas transversales del backend
 
-- **Soft delete**: nada se borra. Se marca `estado = 'inactivo'` y todas las lecturas filtran por `estado = 'activo'`.
-- **Aislamiento por usuario**: cada query debe filtrar por el usuario del token. Las cuentas por `usuarioId`; los movimientos por join con su cuenta. Un endpoint que no filtre por usuario es un bug de seguridad.
+- **Soft delete**: nada se borra. Se marca `deletedAt` y una extensión de Prisma (`config/prisma.js`) inyecta el filtro en toda lectura. El escape sin filtro es `prismaIncludingDeleted`, y solo lo usa `GET /sync`.
+- **Aislamiento por usuario**: cada query filtra por el usuario del token. Un endpoint que no filtre es un bug de seguridad, y cada uno tiene un test que lo comprueba.
 - **Cálculos en el servidor**: balances y totales se resuelven en SQL, no en el cliente.
+- **Ningún objeto de Prisma llega a `res.json()` sin pasar por `lib/serialize.js`**, o los `Decimal` salen como objeto.
 - Rutas versionadas bajo `/api/v1`.
 
 ### Estructura del servidor
 
-Actual:
-
 ```
-server/src/
-  index.js                   Bootstrap de Express
-  v1/routes/                 Definición de rutas por recurso
-  controllers/               Lógica de cada endpoint
-  middleware/auth.js         Verificación del JWT
-  database/models/           Modelos Sequelize e instancia de conexión
-  database/associations/     Relaciones entre modelos
+server/
+  prisma/schema.prisma       Única fuente de verdad del esquema
+  prisma/migrations/         Generadas y aplicadas con prisma migrate
+  scripts/                   Respaldo y verificación de la restauración
+  plans/                     Ejecución de cada fase, con su estado
+  tests/                     Vitest y Supertest sobre una base propia
+  src/
+    index.js                 Arranque: conexión, servidor y job
+    app.js                   Express sin listen, para poder testear
+    config/                  env.js y prisma.js
+    middleware/
+    schemas/                 Esquemas zod por recurso
+    services/                La lógica de dominio vive aquí
+    controllers/             Solo traducen HTTP a llamadas de servicio
+    v1/routes/
+    jobs/recurring.job.js
+    lib/                     errors, cursor, date, serialize
 ```
-
-La estructura objetivo, con `prisma/`, `services/` y `schemas/`, está en `docs/BACKEND.md` §9. La lógica de dominio pasa a vivir en `services/`, no en los controladores.
 
 ---
 
@@ -108,20 +112,22 @@ La estructura objetivo, con `prisma/`, `services/` y `schemas/`, está en `docs/
 # Backend
 cd server && npm run dev      # nodemon
 cd server && npm start        # producción
+cd server && npm test         # vitest, recrea y migra la base de pruebas
 
-# Cliente web
-cd client && npm run dev
-cd client && npm run build
-cd client && npm run lint
+# Esquema
+cd server && npx prisma migrate deploy
+cd server && npx prisma migrate diff --from-schema-datamodel prisma/schema.prisma --to-schema-datasource prisma/schema.prisma --script
+
+# Respaldo y verificación de que se puede restaurar
+cd server && sh scripts/backup.sh
+cd server && sh scripts/restore-check.sh
 ```
 
-No hay suite de tests todavía.
+Los tests corren contra `lumo_wallet_test`, que se borra y se recrea en cada ejecución. Se lanzan desde `server/`: fuera de ahí no encuentran `vitest.config.js` y fallan todos.
 
 ## Variables de entorno
 
-Estado actual — `server/.env`: `PORT`, `NODE_ENV`, `JWT_SECRET`, `CORS_ORIGIN`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_DIALECT`. `client/.env`: `VITE_API_URL`.
-
-`server/.env.example` está desactualizado: declara `SECRETOPRIVATEKEY`, pero el código lee `JWT_SECRET`. La lista objetivo, con las variables nuevas de zona horaria, tokens y rate limiting, está en `docs/BACKEND.md` §7.
+`server/.env.example` refleja la lista exacta que valida `src/config/env.js` al arrancar. Si falta una obligatoria el proceso no arranca. `DATABASE_URL` es una sola variable, no las seis `DB_*` de antes, y la leen tanto el servidor como el CLI de Prisma.
 
 ---
 
@@ -145,5 +151,6 @@ Lo ya catalogado está en `docs/BACKEND.md` §2, con su estado. Si aparece algo 
 - Antes de agregar un endpoint, revisar `docs/BACKEND.md`: puede que ya esté planificado con una forma concreta.
 - El objetivo actual es preparar el backend para una app React Native + Expo. Priorizar contratos estables, respuestas ligeras y campos que permitan sincronización incremental.
 - La UI web actual es descartable. No invertir esfuerzo en ella salvo petición explícita.
-- El esquema se crea hoy con `sequelize.sync()` al arrancar y no hay migraciones. En cuanto exista la primera migración de Prisma, `sync()` debe salir del arranque: si conviven, pelean por el esquema.
+- El esquema lo gobiernan las migraciones de Prisma. Nada de tocar tablas a mano: un cambio empieza en `prisma/schema.prisma` y sigue con una migración.
+- Las tablas `*_legacy` guardan el modelo anterior y se borran con su propia migración un mes después de la Fase 3.
 - Los saldos se calculan siempre, nunca se almacenan en una columna. No introducir un campo de saldo ni un caché de saldo sin leer antes `docs/BACKEND.md` §3.3.

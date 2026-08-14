@@ -53,6 +53,9 @@ Verificado contra el código. La columna indica si el rediseño lo resuelve solo
 | 2.19 | `parseInt` sobre el balance en `movimientos.controller.js` truncaría los centavos cuando `monto` pase a `Decimal(14,2)` | Cerrado: el controlador desapareció en la Fase 4 y los saldos pasan por `serialize.js` |
 | 2.20 | `ORDER BY createdAt DESC` sin desempate: con dos filas del mismo instante el orden lo decide MySQL, y paginar sobre él puede repetir o saltarse filas. En esta app el empate es lo normal, no la excepción: cada evento se registra hoy como dos movimientos a la vez | Cerrado en la Fase 4 con la paginación por cursor, que desempata por `id` |
 | 2.21 | El corte de rango a medianoche UTC (§2.1) reaparece en cualquier endpoint nuevo que acepte fechas: `z.coerce.date()` sobre `2026-08-05` produce medianoche UTC y deja fuera el día entero | Cerrado en la Fase 4: los rangos pasan por `rangeStart` y `rangeEnd`, que resuelven en `APP_TIMEZONE`. Todo endpoint nuevo con fechas debe usarlos |
+| 2.22 | La aritmética de las columnas `DATE` (`startDate`, `nextRunAt`, `scheduledDate`) se hacía en `APP_TIMEZONE`: MySQL las devuelve a medianoche UTC y convertirlas a Bogotá las corre al día anterior. Una regla del día 5 habría generado su ocurrencia el 4, y cada relectura la habría corrido un día más | Cerrado en la Fase 5: `lib/date.js` expone `plainDate` y `fromPlainDate`, y las fechas sin hora se calculan en UTC |
+| 2.23 | `GET /sync` no pagina: devuelve todo lo cambiado desde `since` en una sola respuesta, y la primera sincronización de un dispositivo trae las 1.668 operaciones del histórico (~350 KB, ~50 KB comprimidos) | Abierto, deliberado. Paginar exige un corte estable, y las filas migradas comparten `updatedAt` al milisegundo, así que un corte por marca de tiempo se atascaría. Se revisa si el histórico crece un orden de magnitud |
+| 2.24 | Los identificadores de los tickets de Expo esperan el recibo en memoria: al reiniciar el proceso se pierden y la baja de un token muerto se retrasa hasta el siguiente envío | Abierto, aceptado. La alternativa es una tabla para un dato que vive una hora |
 
 El detalle de ejecución de cada fase está en `server/plans/`.
 
@@ -533,11 +536,12 @@ El índice único `[recurringRuleId, scheduledDate]` hace la generación idempot
 
 | Endpoint | Notas |
 |---|---|
-| `POST /devices` | registra el push token de Expo |
+| `POST /devices` | registra el push token de Expo. Repetir el mismo token no duplica: lo reasigna al usuario que lo envía |
+| `GET /devices` | los dispositivos del usuario, para poder revocar uno desde la app |
 | `DELETE /devices/:id` | |
 | `GET /sync?since=` | delta de operaciones, cuentas y categorías creadas, actualizadas y borradas desde una marca de tiempo |
 
-`GET /sync` es uno de los pocos consumidores del escape de §3.2: necesita ver los registros borrados para poder reportarlos al cliente.
+`GET /sync` es uno de los pocos consumidores del escape de §3.2: necesita ver los registros borrados para poder reportarlos al cliente. Devuelve cada colección partida en `updated` y `deleted`, esta última solo con identificadores, y un `serverTime` que el cliente guarda para la siguiente llamada. El corte superior es ese mismo `serverTime`, tomado antes de consultar: lo que se escriba mientras la consulta corre entra en el delta siguiente en vez de perderse. `since` ausente significa sincronización completa.
 
 ---
 
@@ -567,7 +571,12 @@ RATE_LIMIT_AUTH_MAX=10
 
 CORS_ORIGIN=http://localhost:5173
 
+RECURRING_JOB_ENABLED=true
+RECURRING_JOB_CRON=0 6 * * *
+RECURRING_MAX_CATCHUP=12
+
 EXPO_ACCESS_TOKEN=
+MIN_CLIENT_VERSION=
 ```
 
 `DATABASE_URL` reemplaza las seis variables `DB_*`. `.env.example` debe reflejar exactamente esta lista; hoy declara `SECRETOPRIVATEKEY`, que no existe en el código.

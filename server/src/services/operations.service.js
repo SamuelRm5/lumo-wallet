@@ -258,6 +258,8 @@ export const createOperationWith = async (db, userId, input) => {
 			status: resolved.status ?? "confirmed",
 			origin: resolved.origin ?? "manual",
 			idempotencyKey: resolved.idempotencyKey ?? null,
+			recurringRuleId: resolved.recurringRuleId ?? null,
+			scheduledDate: resolved.scheduledDate ?? null,
 			entries: { create: entries },
 		},
 		...OPERATION_SHAPE,

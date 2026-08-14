@@ -1,7 +1,10 @@
 import { DateTime } from "luxon";
 import prisma from "../config/prisma.js";
+import env from "../config/env.js";
+import { createOperation } from "./operations.service.js";
+import { logger } from "../middleware/requestLogger.js";
 import { notFound, validationError } from "../lib/errors.js";
-import { timezone } from "../lib/date.js";
+import { fromPlainDate, plainDate, today } from "../lib/date.js";
 
 const STEP = {
 	weekly: { weeks: 1 },
@@ -16,10 +19,8 @@ const STEP = {
  * desborda a marzo.
  */
 export const nextOccurrence = (rule, desde) => {
-	const inicio = DateTime.fromJSDate(rule.startDate, { zone: timezone }).startOf(
-		"day",
-	);
-	const limite = DateTime.fromJSDate(desde, { zone: timezone }).startOf("day");
+	const inicio = plainDate(rule.startDate).startOf("day");
+	const limite = plainDate(desde).startOf("day");
 
 	let fecha = inicio;
 	if (rule.frequency === "monthly" || rule.frequency === "yearly") {
@@ -41,10 +42,7 @@ export const nextOccurrence = (rule, desde) => {
 		guardia += 1;
 	}
 
-	if (rule.endDate) {
-		const fin = DateTime.fromJSDate(rule.endDate, { zone: timezone }).endOf("day");
-		if (fecha > fin) return null;
-	}
+	if (rule.endDate && fecha > plainDate(rule.endDate)) return null;
 
 	return fecha.toJSDate();
 };
@@ -95,7 +93,7 @@ export const createRule = async (userId, input) => {
 	await validateAccounts(userId, input);
 
 	const data = { ...withDates(input), userId };
-	data.nextRunAt = nextOccurrence(data, new Date());
+	data.nextRunAt = nextOccurrence(data, today());
 
 	return prisma.recurringRule.create({ data });
 };
@@ -114,7 +112,7 @@ export const updateRule = async (userId, id, input) => {
 		where: { id },
 		data: {
 			...withDates(input),
-			nextRunAt: nextOccurrence(merged, new Date()),
+			nextRunAt: nextOccurrence(merged, today()),
 		},
 	});
 };
@@ -127,4 +125,97 @@ export const deleteRule = async (userId, id) => {
 		where: { id },
 		data: { deletedAt: new Date() },
 	});
+};
+
+/**
+ * La operación que corresponde a una ocurrencia. En modo recordatorio queda
+ * pendiente y no mueve saldos hasta que el usuario la confirma con el monto
+ * definitivo; en modo automático se registra confirmada.
+ */
+const occurrenceInput = (rule, scheduled) => ({
+	kind: rule.kind,
+	amount: rule.amount,
+	categoryId: rule.categoryId ?? undefined,
+	sourceAccountId: rule.sourceAccountId ?? undefined,
+	fromAccountId: rule.fromAccountId ?? undefined,
+	toAccountId: rule.toAccountId ?? undefined,
+	date: fromPlainDate(scheduled),
+	description: rule.name,
+	status: rule.mode === "auto" ? "confirmed" : "pending",
+	origin: "recurring",
+	recurringRuleId: rule.id,
+	scheduledDate: scheduled,
+});
+
+const generateOccurrence = async (rule, scheduled) => {
+	try {
+		return await createOperation(rule.userId, occurrenceInput(rule, scheduled));
+	} catch (error) {
+		// El índice único [recurringRuleId, scheduledDate] es lo que hace que el
+		// job se pueda repetir. Comprobar antes con un findFirst deja una carrera
+		// entre la comprobación y la escritura
+		if (error?.code === "P2002") return null;
+		throw error;
+	}
+};
+
+const dayAfter = date => plainDate(date).plus({ days: 1 }).toJSDate();
+
+/**
+ * Recorre las reglas vencidas y genera lo que falte hasta hoy. Si el servidor
+ * estuvo caído se recuperan todas las ocurrencias atrasadas, no solo la última,
+ * con un tope por regla para que una fecha de inicio antigua no produzca cientos
+ * de operaciones de golpe.
+ *
+ * Lo que quede por encima del tope no se pierde: `nextRunAt` se deja apuntando a
+ * la primera ocurrencia sin generar y la siguiente ejecución continúa por ahí.
+ */
+export const runDueRules = async ({
+	reference = new Date(),
+	maxCatchUp = env.RECURRING_MAX_CATCHUP,
+	onGenerated,
+} = {}) => {
+	const limit = today(reference);
+
+	const rules = await prisma.recurringRule.findMany({
+		where: { nextRunAt: { not: null, lte: limit } },
+	});
+
+	const summary = { rules: rules.length, created: 0, skipped: 0, failed: 0 };
+
+	for (const rule of rules) {
+		let scheduled = rule.nextRunAt;
+		let generadas = 0;
+
+		try {
+			while (scheduled && scheduled <= limit && generadas < maxCatchUp) {
+				const operation = await generateOccurrence(rule, scheduled);
+
+				if (operation) {
+					summary.created += 1;
+					await onGenerated?.(rule, operation);
+				} else {
+					summary.skipped += 1;
+				}
+
+				generadas += 1;
+				scheduled = nextOccurrence(rule, dayAfter(scheduled));
+			}
+
+			await prisma.recurringRule.update({
+				where: { id: rule.id },
+				data: { nextRunAt: scheduled },
+			});
+		} catch (error) {
+			// Una regla con una cuenta borrada no puede detener a las demás:
+			// se deja su nextRunAt intacto para reintentarla mañana
+			summary.failed += 1;
+			logger.error(
+				{ err: error, ruleId: rule.id, userId: rule.userId },
+				"No se pudo generar la ocurrencia de una regla recurrente",
+			);
+		}
+	}
+
+	return summary;
 };

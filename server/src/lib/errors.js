@@ -6,6 +6,7 @@ export const ERROR_CODES = {
 	FORBIDDEN: 403,
 	NOT_FOUND: 404,
 	CONFLICT: 409,
+	UPGRADE_REQUIRED: 426,
 	RATE_LIMITED: 429,
 	INTERNAL: 500,
 };
@@ -32,6 +33,9 @@ export const forbidden = message => new AppError("FORBIDDEN", message);
 export const notFound = message => new AppError("NOT_FOUND", message);
 
 export const conflict = message => new AppError("CONFLICT", message);
+
+export const upgradeRequired = message =>
+	new AppError("UPGRADE_REQUIRED", message);
 
 // Envuelve un error inesperado conservando el original para el log, sin que
 // llegue nada de él al cliente

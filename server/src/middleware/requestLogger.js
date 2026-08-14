@@ -31,6 +31,9 @@ export const requestLogger = pinoHttp({
 		res.setHeader("X-Request-Id", id);
 		return id;
 	},
+	// La versión del cliente en cada línea permite atribuir un fallo a una
+	// versión concreta de la app instalada
+	customProps: req => ({ clientVersion: req.headers["x-client-version"] }),
 	customLogLevel: (req, res, err) => {
 		if (err || res.statusCode >= 500) return "error";
 		if (res.statusCode >= 400) return "warn";

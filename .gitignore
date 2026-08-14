@@ -60,3 +60,4 @@ server/plans/.snapshots/
 # Volcados de base de datos: contienen datos reales y hashes de contrasenas
 *.sql
 !server/prisma/migrations/**/*.sql
+server/backups/

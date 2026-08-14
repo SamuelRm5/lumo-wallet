@@ -43,4 +43,25 @@ export const endOfDay = input => {
 
 export const now = () => DateTime.now().setZone(ZONE).toJSDate();
 
+/**
+ * Las columnas DATE se guardan y se leen a medianoche UTC. Convertirlas a la
+ * zona de la aplicación las corre un día hacia atrás, así que su aritmética va
+ * en UTC y solo el día de hoy se decide con el reloj de la zona.
+ */
+export const plainDate = input => DateTime.fromJSDate(input, { zone: "utc" });
+
+export const today = (reference = new Date()) => {
+	const local = DateTime.fromJSDate(reference, { zone: ZONE });
+	return DateTime.utc(local.year, local.month, local.day).toJSDate();
+};
+
+// El instante que representa una fecha sin hora dentro del día de la aplicación
+export const fromPlainDate = input => {
+	const utc = plainDate(input);
+	return DateTime.fromObject(
+		{ year: utc.year, month: utc.month, day: utc.day },
+		{ zone: ZONE },
+	).toJSDate();
+};
+
 export const timezone = ZONE;

@@ -16,6 +16,9 @@ const testEnv = {
 	DATABASE_URL: url.toString(),
 	ALLOW_PUBLIC_REGISTRATION: "true",
 	RATE_LIMIT_AUTH_MAX: "10000",
+	// El job lo dispara cada test que lo necesite, no un temporizador
+	RECURRING_JOB_ENABLED: "false",
+	MIN_CLIENT_VERSION: "1.2.0",
 };
 
 // globalSetup corre en el proceso principal de Vitest, donde test.env todavía

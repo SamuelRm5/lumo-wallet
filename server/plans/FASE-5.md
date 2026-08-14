@@ -92,6 +92,33 @@ Reversión: el job se puede desactivar por configuración sin tocar el resto. `G
 
 ---
 
+## Estado de ejecución
+
+Cerrada. 106 tests en verde, 32 de ellos nuevos: el job, `/sync`, `/devices` y el transporte.
+
+| Punto de aceptación | Comprobación |
+|---|---|
+| 1. El job no duplica al correr dos veces | `recurring.job.test.js`: se devuelve `nextRunAt` a la primera ocurrencia y la segunda pasada genera 0 y descarta 3 |
+| 2. Una `pending` no altera saldos | El saldo del depósito sigue en 0 tras generar tres recordatorios |
+| 3. La notificación llega a un dispositivo real | **No verificado.** Requiere `EXPO_ACCESS_TOKEN` y un teléfono con la app instalada, que todavía no existe |
+| 4. Un token dado de baja se elimina | Cubierto en código (ticket y recibo), no verificado contra Expo por lo mismo |
+| 5. `GET /sync?since=` devuelve los borrados | `sync.api.test.js`: borrar una operación y una categoría las reporta en `deleted` y no en `updated` |
+| 6. `X-Client-Version` por debajo del mínimo recibe `426` | `transport.api.test.js`, con las cuatro variantes: vieja, mínima, posterior y ausente |
+| 7. El backup corre y su restauración está probada | `scripts/backup.sh` y `scripts/restore-check.sh`, ejecutados sobre la base local: 27/118/1668/1690 idénticos entre origen y copia |
+
+Lo que los tests protegen, más allá del CRUD:
+
+- Que la puesta al día genere **todas** las ocurrencias atrasadas y no solo la última, y que el tope corte sin perder las que faltan: `nextRunAt` queda apuntando a la primera sin generar.
+- Que una regla con una cuenta borrada no detenga a las demás.
+- Que una regla borrada deje de generar.
+- Que `/sync` no filtre nada de otro usuario, y que los montos salgan como número.
+- Que un teléfono que cambia de manos deje de recibir las notificaciones del dueño anterior.
+
 ## Desviaciones
 
-Ninguna prevista.
+- **`GET /devices` no estaba en la especificación.** Sin listado no hay forma de revocar un dispositivo desde la app: `DELETE /devices/:id` pide un identificador que el cliente no tiene de otra manera. Añadido a `docs/BACKEND.md` §7.7.
+- **La aritmética de fechas sin hora se rehizo.** Las columnas `DATE` se leen a medianoche UTC y el cálculo de ocurrencias las convertía a `APP_TIMEZONE`, lo que las corría un día hacia atrás. Catalogado y cerrado como §2.22.
+- **`GET /sync` no pagina.** Decisión deliberada, §2.23: las filas migradas comparten `updatedAt` al milisegundo y un corte por marca de tiempo se atascaría.
+- **Los recibos de Expo se esperan en memoria**, no en una tabla. §2.24.
+- **El job corre también al arrancar**, no solo en la hora programada: si el servidor estuvo caído, las ocurrencias atrasadas no esperan a la siguiente medianoche (`LOGICA_NEGOCIO.md` §8).
+- **La notificación no se ha probado contra un dispositivo real.** No hay app instalada todavía, y `EXPO_ACCESS_TOKEN` no está configurado. Sin token el envío se salta y queda registrado en el log en vez de fallar. Es lo único de la fase que queda por verificar en el mundo real, y solo se puede hacer con la app móvil en la mano.
