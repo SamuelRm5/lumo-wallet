@@ -6,9 +6,9 @@ Detalle de ejecución de las fases definidas en `docs/BACKEND.md` §12. Aquí no
 
 | Fase | Documento | Objetivo | Estado |
 |---|---|---|---|
-| 0 | [FASE-0.md](FASE-0.md) | Andamio: configuración, fechas, errores y logging | en curso |
-| 1 | [FASE-1.md](FASE-1.md) | Prisma sobre el esquema actual, sin cambiar el contrato | pendiente |
-| 2 | [FASE-2.md](FASE-2.md) | Blindaje: validación, rate limiting, registro cerrado | pendiente |
+| 0 | [FASE-0.md](FASE-0.md) | Andamio: configuración, fechas, errores y logging | cerrada, salvo el backup de producción |
+| 1 | [FASE-1.md](FASE-1.md) | Prisma sobre el esquema actual, sin cambiar el contrato | cerrada en local; falta verificar deriva contra producción |
+| 2 | [FASE-2.md](FASE-2.md) | Blindaje: validación, rate limiting, registro cerrado | siguiente |
 | 3 | [FASE-3.md](FASE-3.md) | Esquema nuevo y migración del histórico | pendiente |
 | 4 | [FASE-4.md](FASE-4.md) | API nueva: operaciones, conciliación, categorías | pendiente |
 | 5 | [FASE-5.md](FASE-5.md) | Operación: recurrentes, push, sync | pendiente |

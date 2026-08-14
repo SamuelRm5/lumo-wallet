@@ -38,13 +38,8 @@ const schema = z.object({
 		"http://localhost:5173",
 	),
 
-	DB_NAME: nonEmpty("DB_NAME es obligatoria"),
-	DB_USER: nonEmpty("DB_USER es obligatoria"),
-	// La contraseña vacía es válida en instalaciones locales de MySQL
-	DB_PASSWORD: z.string().default(""),
-	DB_HOST: nonEmpty("DB_HOST es obligatoria"),
-	DB_PORT: numeric(3306, { min: 1 }),
-	DB_DIALECT: nonEmpty("DB_DIALECT es obligatoria").default("mysql"),
+	// La lee también el CLI de Prisma desde .env, así que el nombre es fijo
+	DATABASE_URL: nonEmpty("DATABASE_URL es obligatoria"),
 });
 
 const result = schema.safeParse(process.env);

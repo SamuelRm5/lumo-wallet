@@ -14,15 +14,9 @@ Cambiar de ORM sin cambiar el esquema ni el contrato de la API (`docs/BACKEND.md
 
 ## Pasos
 
-### 1. Instalar y configurar
+### 1. Configurar
 
-```bash
-cd server
-npm install @prisma/client
-npm install -D prisma
-```
-
-Agregar a `.env` y a `.env.example`:
+`prisma` y `@prisma/client` ya están instalados, ambos en **7.9**. Agregar a `.env` y a `.env.example`:
 
 ```
 DATABASE_URL="mysql://usuario:password@host:3306/base"
@@ -33,9 +27,17 @@ DATABASE_URL="mysql://usuario:password@host:3306/base"
 ### 2. Introspección
 
 ```bash
-npx prisma init --datasource-provider mysql --skip-generate   # solo crea prisma/
+npx prisma init --datasource-provider mysql
 npx prisma db pull
 ```
+
+**Tres diferencias de Prisma 7 respecto a la documentación que circula, casi toda escrita para la 5:**
+
+- El generador por defecto es `prisma-client`, no `prisma-client-js`, y **exige un `output` explícito** en el bloque `generator`. El cliente deja de importarse desde `@prisma/client` y se importa desde la ruta generada. Hay que decidir esa ruta antes de escribir `config/prisma.js`, y añadirla a `.gitignore`.
+- `prisma init` crea un archivo de configuración además del `schema.prisma`. Conviene revisar qué genera antes de commitearlo.
+- `--skip-generate` ya no existe como opción de `init`.
+
+Si algo de esto estorba, la alternativa es fijar `prisma` y `@prisma/client` en la 6.x, que sigue el modelo antiguo. Se decide al empezar la fase, no antes.
 
 Revisar el `schema.prisma` generado. Lo que hay que esperar, dado el estado real del código:
 
@@ -145,4 +147,21 @@ Reversión: mientras no se ejecute ninguna migración contra la base, la fase es
 
 ## Desviaciones
 
+- **Prisma se fijó en 6.x, no en la última.** La 7 solo genera cliente TypeScript, mueve la URL de conexión de `schema.prisma` a `prisma.config.ts` y exige un driver adapter. Forzar `generatedFileExtension = "js"` renombra los archivos pero el contenido sigue siendo TypeScript, así que en un proyecto JavaScript plano no arranca. Pasar el servidor a TypeScript se evaluó y se descartó **para esta fase**: mezclarlo con el cambio de ORM destruye la única propiedad que hace verificable la Fase 1, que es que nada más cambia. Queda como decisión abierta antes de la Fase 4, donde se escribe todo el código nuevo.
 - Se serializa `cuenta.total` como string para preservar la respuesta byte a byte, en contra de la forma natural de Prisma. Deuda declarada, se retira en la Fase 4.
+- **Se agregó desempate por `id` a los ordenamientos por `createdAt`.** No estaba previsto, pero sin él la fase no es verificable: con dos filas del mismo instante el orden lo decidía MySQL y las capturas no se podían comparar. Ver §2.20. Efecto secundario: en `GET /cuentas`, las cuentas creadas en el mismo segundo salen ahora de la más nueva a la más vieja, donde antes el orden era arbitrario.
+- `createdAt` se pasa explícitamente en cada `create`. La columna no tiene default en la base y era Sequelize quien ponía el valor; añadir `@default(now())` sería un cambio de esquema y pertenece a la Fase 3.
+
+---
+
+## Estado de ejecución
+
+Cerrada. Verificado contra la base local:
+
+- `npx prisma migrate status` reporta la base al día con la baseline `0_init`.
+- Las capturas de `.snapshots/` antes y después son **idénticas** en `auth-validate`, `cuentas-tipo-fuente`, `movimientos` y `date-range-ano-2025`. La única diferencia es el orden de los empates en `GET /cuentas`, explicado arriba.
+- 26 comprobaciones de escritura en verde: alta, consulta, edición y borrado suave de cuentas y movimientos, balance del período, filtros por tipo y por cuenta, aislamiento entre usuarios y formato de error.
+- `grep -rn "sequelize\|mysql2" src/` no devuelve nada. `src/database/` y `.sequelizerc` borrados.
+- `npm audit`: **0 vulnerabilidades**. Las dos que quedaban eran `uuid`, transitiva de Sequelize.
+
+Pendiente y heredado de la Fase 0: el backup de producción. La base local se sembró con datos de prueba, así que `schema.prisma` refleja lo que produce `sequelize.sync()` hoy, no necesariamente lo que hay en producción. **Antes de desplegar hay que correr `npx prisma migrate diff` contra producción** y revisar que no haya deriva.

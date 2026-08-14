@@ -1,4 +1,3 @@
-import loadModels from "../database/models/index.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import {
@@ -7,15 +6,14 @@ import {
 	unauthenticated,
 	validationError,
 } from "../lib/errors.js";
+import prisma from "../config/prisma.js";
 import env from "../config/env.js";
-
-const { Usuarios } = await loadModels();
 
 const register = async (req, res, next) => {
 	const { nombre, email, password } = req.body;
 
 	try {
-		const existingUser = await Usuarios.findOne({
+		const existingUser = await prisma.usuarios.findFirst({
 			where: { email, estado: "activo" },
 		});
 
@@ -25,10 +23,13 @@ const register = async (req, res, next) => {
 
 		const hashedPassword = await bcrypt.hash(password, 10);
 
-		const usuario = await Usuarios.create({
-			nombre,
-			email,
-			password: hashedPassword,
+		const usuario = await prisma.usuarios.create({
+			data: {
+				nombre,
+				email,
+				password: hashedPassword,
+				createdAt: new Date(),
+			},
 		});
 
 		const token = jwt.sign(
@@ -56,7 +57,7 @@ const login = async (req, res, next) => {
 	const { email, password } = req.body;
 
 	try {
-		const usuario = await Usuarios.findOne({
+		const usuario = await prisma.usuarios.findFirst({
 			where: { email, estado: "activo" },
 		});
 
@@ -98,8 +99,9 @@ const login = async (req, res, next) => {
 const validateToken = async (req, res, next) => {
 	try {
 		// El middleware ya validó el token y estableció req.userId
-		const usuario = await Usuarios.findByPk(req.userId, {
-			attributes: ["id", "nombre", "email", "estado"],
+		const usuario = await prisma.usuarios.findUnique({
+			where: { id: req.userId },
+			select: { id: true, nombre: true, email: true, estado: true },
 		});
 
 		if (!usuario || usuario.estado !== "activo") {
@@ -121,8 +123,14 @@ const validateToken = async (req, res, next) => {
 
 const getProfile = async (req, res, next) => {
 	try {
-		const usuario = await Usuarios.findByPk(req.userId, {
-			attributes: ["id", "nombre", "email", "createdAt"],
+		const usuario = await prisma.usuarios.findUnique({
+			where: { id: req.userId },
+			select: {
+				id: true,
+				nombre: true,
+				email: true,
+				createdAt: true,
+			},
 		});
 
 		if (!usuario) {
@@ -139,14 +147,16 @@ const updateProfile = async (req, res, next) => {
 	const { nombre, email } = req.body;
 
 	try {
-		const usuario = await Usuarios.findByPk(req.userId);
+		const usuario = await prisma.usuarios.findUnique({
+			where: { id: req.userId },
+		});
 
 		if (!usuario) {
 			return next(notFound("Usuario no encontrado"));
 		}
 
 		if (email && email !== usuario.email) {
-			const existingUser = await Usuarios.findOne({
+			const existingUser = await prisma.usuarios.findFirst({
 				where: { email, estado: "activo" },
 			});
 
@@ -155,15 +165,18 @@ const updateProfile = async (req, res, next) => {
 			}
 		}
 
-		usuario.nombre = nombre || usuario.nombre;
-		usuario.email = email || usuario.email;
-
-		await usuario.save();
+		const actualizado = await prisma.usuarios.update({
+			where: { id: usuario.id },
+			data: {
+				nombre: nombre || usuario.nombre,
+				email: email || usuario.email,
+			},
+		});
 
 		res.json({
-			id: usuario.id,
-			nombre: usuario.nombre,
-			email: usuario.email,
+			id: actualizado.id,
+			nombre: actualizado.nombre,
+			email: actualizado.email,
 		});
 	} catch (error) {
 		next(error);
@@ -190,7 +203,9 @@ const changePassword = async (req, res, next) => {
 			);
 		}
 
-		const usuario = await Usuarios.findByPk(req.userId);
+		const usuario = await prisma.usuarios.findUnique({
+			where: { id: req.userId },
+		});
 
 		if (!usuario) {
 			return next(notFound("Usuario no encontrado"));
@@ -218,8 +233,10 @@ const changePassword = async (req, res, next) => {
 			);
 		}
 
-		usuario.password = await bcrypt.hash(newPassword, 10);
-		await usuario.save();
+		await prisma.usuarios.update({
+			where: { id: usuario.id },
+			data: { password: await bcrypt.hash(newPassword, 10) },
+		});
 
 		res.json({
 			message: "Contraseña actualizada exitosamente",

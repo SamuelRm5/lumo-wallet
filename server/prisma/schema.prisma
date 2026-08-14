@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model cuentas {
+  id          Int            @id @default(autoincrement())
+  usuarioId   Int
+  nombre      String         @db.VarChar(100)
+  descripcion String?        @db.VarChar(255)
+  tipo        cuentas_tipo   @default(deuda)
+  createdAt   DateTime       @db.DateTime(0)
+  estado      cuentas_estado @default(activo)
+  usuarios    usuarios       @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "cuentas_ibfk_1")
+  movimientos movimientos[]
+
+  @@index([createdAt], map: "idx_cuentas_fecha")
+  @@index([nombre(length: 20)], map: "idx_cuentas_nombre")
+  @@index([tipo], map: "idx_cuentas_tipo")
+  @@index([usuarioId, estado], map: "idx_cuentas_usuario_estado")
+}
+
+model movimientos {
+  id          Int                @id @default(autoincrement())
+  cuentaId    Int
+  tipo        movimientos_tipo   @default(ingreso)
+  monto       Int
+  descripcion String?            @db.VarChar(255)
+  createdAt   DateTime           @db.DateTime(0)
+  estado      movimientos_estado @default(activo)
+  cuentas     cuentas            @relation(fields: [cuentaId], references: [id], onDelete: Cascade, map: "movimientos_ibfk_1")
+
+  @@index([cuentaId, createdAt, tipo, estado], map: "idx_movimientos_analytics")
+  @@index([cuentaId, estado], map: "idx_movimientos_cuenta_estado")
+  @@index([createdAt], map: "idx_movimientos_fecha")
+  @@index([cuentaId, createdAt, estado], map: "idx_movimientos_fecha_rango")
+  @@index([tipo], map: "idx_movimientos_tipo")
+}
+
+model usuarios {
+  id        Int             @id @default(autoincrement())
+  nombre    String          @db.VarChar(100)
+  email     String          @unique(map: "email") @db.VarChar(255)
+  password  String          @db.VarChar(255)
+  createdAt DateTime        @db.DateTime(0)
+  estado    usuarios_estado @default(activo)
+  cuentas   cuentas[]
+}
+
+enum movimientos_tipo {
+  ingreso
+  egreso
+}
+
+enum cuentas_tipo {
+  normal
+  deuda
+  fuente
+}
+
+enum usuarios_estado {
+  activo
+  inactivo
+}
+
+enum cuentas_estado {
+  activo
+  inactivo
+}
+
+enum movimientos_estado {
+  activo
+  inactivo
+}

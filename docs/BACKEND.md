@@ -38,19 +38,20 @@ Verificado contra el código. La columna indica si el rediseño lo resuelve solo
 | 2.4 | `POST /auth/register` abierto al público, sin rate limiting | Fase 2 |
 | 2.5 | `zod` está instalado y nunca se usa: cero validación de entrada | Entrada de la API: Fase 2. Variables de entorno: cerrado en la Fase 0 |
 | 2.6 | Varios `catch` devuelven el objeto `error` crudo al cliente | Cerrado en la Fase 0 |
-| 2.7 | `loadModels()` corre en el top-level de 4 archivos y duplica asociaciones | Resuelto por §3.1. Fase 1 |
+| 2.7 | `loadModels()` corre en el top-level de 4 archivos y duplica asociaciones | Cerrado en la Fase 1 |
 | 2.8 | `getMovimiento`, `update` y `delete` no filtran por estado activo | Fase 2 |
-| 2.9 | `literal('CASE WHEN tipo = "ingreso" ...')` depende de MySQL sin `ANSI_QUOTES` | Comillas simples desde la Fase 0; el `literal` desaparece en la Fase 1 (§3.3) |
-| 2.10 | `sequelize.sync()` no aplica cambios sobre tablas existentes; sin migraciones | Resuelto por §3.1. Fase 1 |
+| 2.9 | `literal('CASE WHEN tipo = "ingreso" ...')` depende de MySQL sin `ANSI_QUOTES` | Cerrado en la Fase 1: el `literal` desapareció |
+| 2.10 | `sequelize.sync()` no aplica cambios sobre tablas existentes; sin migraciones | Cerrado en la Fase 1 |
 | 2.11 | Timezone removida de Sequelize sin reemplazo (commit `aea1ebc`) | Cerrado en la Fase 0 con `APP_TIMEZONE` y `lib/date.js` |
 | 2.12 | `validateToken` imprime el usuario completo por consola en cada arranque | Cerrado en la Fase 0 |
 | 2.13 | `getMovimientos` busca la cuenta sin filtrar `estado`: una cuenta archivada sigue devolviendo movimientos y balance | Fase 2, junto con §2.8 |
 | 2.14 | `createMovimiento` acepta `createdAt` del cliente sin límite: se puede grabar un movimiento en el año 3000 | Fase 2. El límite de 24 h en el futuro está en §13 |
 | 2.15 | `POST /movimientos/:cuentaId` acepta `monto` negativo o cero, contra el invariante de `LOGICA_NEGOCIO.md` §9.2 | Fase 2 |
 | 2.16 | `updateCuenta` usa `campo \|\| cuenta.campo`: es imposible vaciar `descripcion` | Fase 2, donde `zod` distingue `undefined` de `""` |
-| 2.17 | `.sequelizerc` apunta a `src/database/config/config.js`, que no existe | Fase 1, al retirar Sequelize |
+| 2.17 | `.sequelizerc` apunta a `src/database/config/config.js`, que no existe | Cerrado en la Fase 1 |
 | 2.18 | `optionalAuthMiddleware` exportado y sin usar en ninguna ruta | Cerrado en la Fase 0 |
 | 2.19 | `parseInt` sobre el balance en `movimientos.controller.js` truncaría los centavos cuando `monto` pase a `Decimal(14,2)` | Fase 3, dependencia dura del cambio de tipo |
+| 2.20 | `ORDER BY createdAt DESC` sin desempate: con dos filas del mismo instante el orden lo decide MySQL, y paginar sobre él puede repetir o saltarse filas. En esta app el empate es lo normal, no la excepción: cada evento se registra hoy como dos movimientos a la vez | Mitigado en la Fase 1 con desempate por `id`; lo cierra la paginación por cursor de §4 en la Fase 4 |
 
 El detalle de ejecución de cada fase está en `server/plans/`.
 
