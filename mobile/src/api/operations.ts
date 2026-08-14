@@ -49,3 +49,43 @@ export function listOperations(params: ListOperationsParams = {}) {
 		`/operations${suffix ? `?${suffix}` : ""}`,
 	);
 }
+
+// Los campos exigidos varían según `kind` (docs/APP_MOVIL.md §4.4):
+// income → toAccountId · expense → fromAccountId
+// transfer → fromAccountId + toAccountId, sin categoría ni fuente
+// adjustment → accountId + direction + description
+export type CreateOperationInput = {
+	kind: OperationKind;
+	amount: number;
+	date: string;
+	description?: string;
+	categoryId?: number;
+	sourceAccountId?: number;
+	fromAccountId?: number;
+	toAccountId?: number;
+	accountId?: number;
+	direction?: "in" | "out";
+};
+
+export function createOperation(data: CreateOperationInput, idempotencyKey: string) {
+	return apiRequest<Operation>("/operations", {
+		method: "POST",
+		body: data,
+		headers: { "Idempotency-Key": idempotencyKey },
+	});
+}
+
+export function updateOperation(id: number, data: Partial<CreateOperationInput>) {
+	return apiRequest<Operation>(`/operations/${id}`, { method: "PUT", body: data });
+}
+
+export function deleteOperation(id: number) {
+	return apiRequest<void>(`/operations/${id}`, { method: "DELETE" });
+}
+
+export function confirmOperation(id: number, amount?: number) {
+	return apiRequest<Operation>(`/operations/${id}/confirm`, {
+		method: "POST",
+		body: amount !== undefined ? { amount } : undefined,
+	});
+}
