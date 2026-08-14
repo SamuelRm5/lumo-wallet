@@ -1,5 +1,6 @@
 import { Tabs, useRouter } from "expo-router";
 import { CircleUserRound, House, List, PlusCircle, PieChart } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/theme";
 
@@ -9,6 +10,7 @@ import { useTheme } from "@/theme";
 export default function TabsLayout() {
 	const theme = useTheme();
 	const router = useRouter();
+	const insets = useSafeAreaInsets();
 
 	return (
 		<Tabs
@@ -19,7 +21,13 @@ export default function TabsLayout() {
 				tabBarStyle: {
 					backgroundColor: theme.colors.surfaceCard,
 					borderTopColor: theme.colors.borderSubtle,
-					height: theme.chrome.tabBarHeight,
+					// Al fijar `height` se pierde el padding automático que
+					// react-navigation agrega para la barra de navegación del
+					// sistema (Android): sin esto, los botones de atrás/inicio
+					// tapan la mitad de las pestañas.
+					height: theme.chrome.tabBarHeight + insets.bottom,
+					paddingBottom: insets.bottom,
+					paddingTop: 8,
 				},
 			}}>
 			<Tabs.Screen
