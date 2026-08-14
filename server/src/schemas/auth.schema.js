@@ -15,7 +15,7 @@ const password = z
 
 export const registerSchema = {
 	body: z.object({
-		nombre: requiredText(100, "El nombre"),
+		name: requiredText(100, "El nombre"),
 		email,
 		password,
 	}),
@@ -35,11 +35,11 @@ export const loginSchema = {
 export const updateProfileSchema = {
 	body: z
 		.object({
-			nombre: requiredText(100, "El nombre").optional(),
+			name: requiredText(100, "El nombre").optional(),
 			email: email.optional(),
 		})
 		.refine(
-			data => data.nombre !== undefined || data.email !== undefined,
+			data => data.name !== undefined || data.email !== undefined,
 			"Envía al menos un campo para actualizar",
 		),
 };

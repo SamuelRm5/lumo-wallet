@@ -1,7 +1,7 @@
 import {
 	v1AuthRoutes,
-	v1CuentasRoutes,
-	v1MovimientosRoutes,
+	v1AccountsRoutes,
+	v1SummaryRoutes,
 } from "./v1/routes/index.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { requestLogger } from "./middleware/requestLogger.js";
@@ -24,8 +24,8 @@ const createApp = () => {
 	});
 
 	app.use("/api/v1/auth", v1AuthRoutes);
-	app.use("/api/v1/cuentas", v1CuentasRoutes);
-	app.use("/api/v1/movimientos", v1MovimientosRoutes);
+	app.use("/api/v1/accounts", v1AccountsRoutes);
+	app.use("/api/v1/summary", v1SummaryRoutes);
 
 	app.use(notFoundHandler);
 	app.use(errorHandler);

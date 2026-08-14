@@ -67,10 +67,10 @@ const assertEquationHolds = (entries, accountsById) => {
 };
 
 /** Las cuentas involucradas, verificando que sean del usuario y estén vivas */
-const loadAccounts = async (userId, ids) => {
+const loadAccounts = async (db, userId, ids) => {
 	const unique = [...new Set(ids.filter(id => id !== undefined && id !== null))];
 
-	const accounts = await prisma.account.findMany({
+	const accounts = await db.account.findMany({
 		where: { id: { in: unique }, userId },
 	});
 
@@ -85,10 +85,10 @@ const loadAccounts = async (userId, ids) => {
  * Si el usuario tiene una sola cuenta source, no se le pregunta a cuál imputar.
  * Con varias, el campo es obligatorio.
  */
-const resolveSourceAccountId = async (userId, provided) => {
+const resolveSourceAccountId = async (db, userId, provided) => {
 	if (provided !== undefined && provided !== null) return provided;
 
-	const sources = await prisma.account.findMany({
+	const sources = await db.account.findMany({
 		where: { userId, type: "source" },
 		select: { id: true },
 		take: 2,
@@ -157,7 +157,7 @@ const validate = (input, accountsById) => {
 	}
 };
 
-const validateCategory = async (userId, categoryId, kind) => {
+const validateCategory = async (db, userId, categoryId, kind) => {
 	if (categoryId === undefined || categoryId === null) return null;
 
 	if (kind === "transfer" || kind === "adjustment") {
@@ -166,7 +166,7 @@ const validateCategory = async (userId, categoryId, kind) => {
 		);
 	}
 
-	const category = await prisma.category.findFirst({
+	const category = await db.category.findFirst({
 		where: { id: categoryId, userId },
 	});
 
@@ -202,7 +202,7 @@ const present = operation => ({
 });
 
 /** Prepara y valida todo lo que hace falta para escribir, sin escribir nada */
-const prepare = async (userId, input) => {
+const prepare = async (db, userId, input) => {
 	const amount = new Prisma.Decimal(input.amount);
 
 	if (amount.lessThanOrEqualTo(0)) {
@@ -212,11 +212,11 @@ const prepare = async (userId, input) => {
 	const resolved = {
 		...input,
 		sourceAccountId: NEEDS_SOURCE.has(input.kind)
-			? await resolveSourceAccountId(userId, input.sourceAccountId)
+			? await resolveSourceAccountId(db, userId, input.sourceAccountId)
 			: undefined,
 	};
 
-	const accountsById = await loadAccounts(userId, [
+	const accountsById = await loadAccounts(db, userId, [
 		resolved.sourceAccountId,
 		resolved.fromAccountId,
 		resolved.toAccountId,
@@ -226,6 +226,7 @@ const prepare = async (userId, input) => {
 	validate(resolved, accountsById);
 
 	const categoryId = await validateCategory(
+		db,
 		userId,
 		resolved.categoryId,
 		resolved.kind,
@@ -237,35 +238,41 @@ const prepare = async (userId, input) => {
 	return { amount, categoryId, entries, resolved };
 };
 
-export const createOperation = async (userId, input) => {
-	const { amount, categoryId, entries, resolved } = await prepare(userId, input);
+/**
+ * Escribe la operación con el cliente que se le pase, que puede ser una
+ * transacción abierta por otro servicio. La conciliación lo necesita para
+ * crear su ajuste y actualizar lastReconciledAt en un solo bloque.
+ */
+export const createOperationWith = async (db, userId, input) => {
+	const { amount, categoryId, entries, resolved } = await prepare(db, userId, input);
 
-	// Operación y asientos se escriben juntos o no se escribe ninguno
-	return prisma.$transaction(async tx => {
-		const operation = await tx.operation.create({
-			data: {
-				userId,
-				kind: resolved.kind,
-				amount,
-				categoryId,
-				date: new Date(resolved.date),
-				description: resolved.description ?? null,
-				status: resolved.status ?? "confirmed",
-				origin: resolved.origin ?? "manual",
-				entries: { create: entries },
-			},
-			...OPERATION_SHAPE,
-		});
-
-		return present(operation);
+	const operation = await db.operation.create({
+		data: {
+			userId,
+			kind: resolved.kind,
+			amount,
+			categoryId,
+			date: new Date(resolved.date),
+			description: resolved.description ?? null,
+			status: resolved.status ?? "confirmed",
+			origin: resolved.origin ?? "manual",
+			entries: { create: entries },
+		},
+		...OPERATION_SHAPE,
 	});
+
+	return present(operation);
 };
+
+// Operación y asientos se escriben juntos o no se escribe ninguno
+export const createOperation = (userId, input) =>
+	prisma.$transaction(tx => createOperationWith(tx, userId, input));
 
 export const updateOperation = async (userId, id, input) => {
 	const existing = await prisma.operation.findFirst({ where: { id, userId } });
 	if (!existing) throw notFound("La operación no existe o no es tuya");
 
-	const { amount, categoryId, entries, resolved } = await prepare(userId, {
+	const { amount, categoryId, entries, resolved } = await prepare(prisma, userId, {
 		...input,
 		kind: input.kind ?? existing.kind,
 	});

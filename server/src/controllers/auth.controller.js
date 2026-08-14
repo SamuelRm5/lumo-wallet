@@ -1,53 +1,59 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import {
-	conflict,
-	notFound,
-	unauthenticated,
-	validationError,
-} from "../lib/errors.js";
+import { conflict, notFound, unauthenticated, validationError } from "../lib/errors.js";
 import prisma from "../config/prisma.js";
 import env from "../config/env.js";
 
+const CATALOGO_INICIAL = [
+	{ name: "Comida", icon: "food", kind: "expense" },
+	{ name: "Transporte", icon: "transport", kind: "expense" },
+	{ name: "Servicios", icon: "utilities", kind: "expense" },
+	{ name: "Salud", icon: "health", kind: "expense" },
+	{ name: "Hogar", icon: "home", kind: "expense" },
+	{ name: "Ocio", icon: "leisure", kind: "expense" },
+	{ name: "Educación", icon: "education", kind: "expense" },
+	{ name: "Otros", icon: "other", kind: "expense" },
+	{ name: "Salario", icon: "salary", kind: "income" },
+	{ name: "Freelance", icon: "freelance", kind: "income" },
+	{ name: "Ventas", icon: "sales", kind: "income" },
+	{ name: "Regalos", icon: "gift", kind: "income" },
+	{ name: "Otros", icon: "other", kind: "income" },
+];
+
+const publicUser = user => ({
+	id: user.id,
+	name: user.name,
+	email: user.email,
+});
+
+const signToken = user =>
+	jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, {
+		expiresIn: "30d",
+	});
+
 const register = async (req, res, next) => {
-	const { nombre, email, password } = req.body;
+	const { name, email, password } = req.body;
 
 	try {
-		const existingUser = await prisma.usuarios.findFirst({
-			where: { email, estado: "activo" },
+		const existing = await prisma.user.findFirst({
+			where: { email, status: "active" },
 		});
 
-		if (existingUser) {
+		if (existing) {
 			return next(conflict("Ya existe un usuario con este email"));
 		}
 
-		const hashedPassword = await bcrypt.hash(password, 10);
-
-		const usuario = await prisma.usuarios.create({
+		// El usuario nace con su catálogo de categorías sembrado
+		const user = await prisma.user.create({
 			data: {
-				nombre,
+				name,
 				email,
-				password: hashedPassword,
-				createdAt: new Date(),
+				password: await bcrypt.hash(password, 10),
+				categories: { create: CATALOGO_INICIAL },
 			},
 		});
 
-		const token = jwt.sign(
-			{
-				userId: usuario.id,
-				email: usuario.email,
-			},
-			env.JWT_SECRET,
-			{ expiresIn: "365d" }, // 1 año para uso familiar
-		);
-		res.status(201).json({
-			token,
-			user: {
-				id: usuario.id,
-				nombre: usuario.nombre,
-				email: usuario.email,
-			},
-		});
+		res.status(201).json({ token: signToken(user), user: publicUser(user) });
 	} catch (error) {
 		next(error);
 	}
@@ -57,127 +63,59 @@ const login = async (req, res, next) => {
 	const { email, password } = req.body;
 
 	try {
-		const usuario = await prisma.usuarios.findFirst({
-			where: { email, estado: "activo" },
+		const user = await prisma.user.findFirst({
+			where: { email, status: "active" },
 		});
 
-		if (!usuario) {
+		if (!user || !(await bcrypt.compare(password, user.password))) {
 			return next(unauthenticated("Credenciales inválidas"));
 		}
 
-		const isValidPassword = await bcrypt.compare(
-			password,
-			usuario.password,
-		);
-
-		if (!isValidPassword) {
-			return next(unauthenticated("Credenciales inválidas"));
-		}
-
-		const token = jwt.sign(
-			{
-				userId: usuario.id,
-				email: usuario.email,
-			},
-			env.JWT_SECRET,
-			{ expiresIn: "30d" }, // 30 días para uso familiar
-		);
-
-		res.json({
-			token,
-			user: {
-				id: usuario.id,
-				nombre: usuario.nombre,
-				email: usuario.email,
-			},
-		});
+		res.json({ token: signToken(user), user: publicUser(user) });
 	} catch (error) {
 		next(error);
 	}
 };
 
-const validateToken = async (req, res, next) => {
+// Reemplaza a GET /validate y GET /profile, que devolvían lo mismo con formas
+// distintas
+const me = async (req, res, next) => {
 	try {
-		// El middleware ya validó el token y estableció req.userId
-		const usuario = await prisma.usuarios.findUnique({
-			where: { id: req.userId },
-			select: { id: true, nombre: true, email: true, estado: true },
-		});
+		const user = await prisma.user.findUnique({ where: { id: req.userId } });
 
-		if (!usuario || usuario.estado !== "activo") {
+		if (!user || user.status !== "active") {
 			return next(unauthenticated("Usuario no válido"));
 		}
 
-		res.json({
-			valid: true,
-			user: {
-				id: usuario.id,
-				nombre: usuario.nombre,
-				email: usuario.email,
-			},
-		});
+		res.json({ ...publicUser(user), createdAt: user.createdAt });
 	} catch (error) {
 		next(error);
 	}
 };
 
-const getProfile = async (req, res, next) => {
-	try {
-		const usuario = await prisma.usuarios.findUnique({
-			where: { id: req.userId },
-			select: {
-				id: true,
-				nombre: true,
-				email: true,
-				createdAt: true,
-			},
-		});
-
-		if (!usuario) {
-			return next(notFound("Usuario no encontrado"));
-		}
-
-		res.json(usuario);
-	} catch (error) {
-		next(error);
-	}
-};
-
-const updateProfile = async (req, res, next) => {
-	const { nombre, email } = req.body;
+const updateMe = async (req, res, next) => {
+	const { name, email } = req.body;
 
 	try {
-		const usuario = await prisma.usuarios.findUnique({
-			where: { id: req.userId },
-		});
+		const user = await prisma.user.findUnique({ where: { id: req.userId } });
+		if (!user) return next(notFound("Usuario no encontrado"));
 
-		if (!usuario) {
-			return next(notFound("Usuario no encontrado"));
-		}
-
-		if (email && email !== usuario.email) {
-			const existingUser = await prisma.usuarios.findFirst({
-				where: { email, estado: "activo" },
+		if (email && email !== user.email) {
+			const taken = await prisma.user.findFirst({
+				where: { email, status: "active" },
 			});
-
-			if (existingUser) {
-				return next(conflict("Ya existe un usuario con este email"));
-			}
+			if (taken) return next(conflict("Ya existe un usuario con este email"));
 		}
 
-		const actualizado = await prisma.usuarios.update({
-			where: { id: usuario.id },
+		const updated = await prisma.user.update({
+			where: { id: user.id },
 			data: {
-				...(nombre !== undefined && { nombre }),
+				...(name !== undefined && { name }),
 				...(email !== undefined && { email }),
 			},
 		});
 
-		res.json({
-			id: actualizado.id,
-			nombre: actualizado.nombre,
-			email: actualizado.email,
-		});
+		res.json(publicUser(updated));
 	} catch (error) {
 		next(error);
 	}
@@ -187,54 +125,28 @@ const changePassword = async (req, res, next) => {
 	const { currentPassword, newPassword } = req.body;
 
 	try {
-		const usuario = await prisma.usuarios.findUnique({
-			where: { id: req.userId },
-		});
+		const user = await prisma.user.findUnique({ where: { id: req.userId } });
+		if (!user) return next(notFound("Usuario no encontrado"));
 
-		if (!usuario) {
-			return next(notFound("Usuario no encontrado"));
-		}
-
-		const isValidCurrentPassword = await bcrypt.compare(
-			currentPassword,
-			usuario.password,
-		);
-
-		if (!isValidCurrentPassword) {
+		if (!(await bcrypt.compare(currentPassword, user.password))) {
 			return next(unauthenticated("Contraseña actual incorrecta"));
 		}
 
-		const isSamePassword = await bcrypt.compare(
-			newPassword,
-			usuario.password,
-		);
-
-		if (isSamePassword) {
+		if (await bcrypt.compare(newPassword, user.password)) {
 			return next(
-				validationError(
-					"La nueva contraseña debe ser diferente a la actual",
-				),
+				validationError("La nueva contraseña debe ser diferente a la actual"),
 			);
 		}
 
-		await prisma.usuarios.update({
-			where: { id: usuario.id },
+		await prisma.user.update({
+			where: { id: user.id },
 			data: { password: await bcrypt.hash(newPassword, 10) },
 		});
 
-		res.json({
-			message: "Contraseña actualizada exitosamente",
-		});
+		res.json({ message: "Contraseña actualizada exitosamente" });
 	} catch (error) {
 		next(error);
 	}
 };
 
-export default {
-	register,
-	login,
-	validateToken,
-	getProfile,
-	updateProfile,
-	changePassword,
-};
+export default { register, login, me, updateMe, changePassword };

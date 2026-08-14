@@ -32,16 +32,15 @@ router.post(
 router.post("/login", authLimiter, validate(loginSchema), authController.login);
 
 // Rutas protegidas (requieren autenticación)
-router.get("/validate", authMiddleware, authController.validateToken);
-router.get("/profile", authMiddleware, authController.getProfile);
+router.get("/me", authMiddleware, authController.me);
 router.put(
-	"/profile",
+	"/me",
 	authMiddleware,
 	validate(updateProfileSchema),
-	authController.updateProfile,
+	authController.updateMe,
 );
 router.put(
-	"/change-password",
+	"/password",
 	authMiddleware,
 	validate(changePasswordSchema),
 	authController.changePassword,
