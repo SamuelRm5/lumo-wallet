@@ -1,4 +1,4 @@
-import { notFound, validationError } from "../lib/errors.js";
+import { notFound } from "../lib/errors.js";
 import { endOfDay, startOfDay } from "../lib/date.js";
 import prisma from "../config/prisma.js";
 
@@ -39,33 +39,15 @@ const buildPagination = (count, page) => {
 
 const getMovimientosByDateRange = async (req, res, next) => {
 	try {
-		const { fechaInicio, fechaFin, cuentaId, tipo, page = 1 } = req.query;
-		const currentPage = parseInt(page);
+		const { fechaInicio, fechaFin, cuentaId, tipo, page } = req.query;
+		const currentPage = page;
 		const skip = (currentPage - 1) * PAGE_SIZE;
-
-		if (!fechaInicio || !fechaFin) {
-			return next(
-				validationError("Parámetros requeridos: fechaInicio y fechaFin", [
-					{
-						path: "fechaInicio",
-						message: "Formato esperado: 2025-01-01",
-					},
-					{ path: "fechaFin", message: "Formato esperado: 2025-12-31" },
-				]),
-			);
-		}
 
 		// El rango se interpreta en la zona de la aplicación y con el día final
 		// completo: new Date("2025-12-31") es medianoche UTC y dejaría fuera
 		// todos los movimientos de ese día
 		const desde = startOfDay(fechaInicio);
 		const hasta = endOfDay(fechaFin);
-
-		if (!desde || !hasta) {
-			return next(
-				validationError("Las fechas deben tener formato ISO válido"),
-			);
-		}
 
 		const where = {
 			createdAt: { gte: desde, lte: hasta },
@@ -128,17 +110,19 @@ const getMovimientosByDateRange = async (req, res, next) => {
 				cuentas ? { ...movimiento, cuenta: cuentas } : movimiento,
 			),
 			paginacion: buildPagination(count, currentPage),
+			// El eco de los filtros va siempre como texto: zod ya coaccionó
+			// cuentaId a número y aquí cambiaría el tipo de la respuesta
 			filtros: {
 				fechaInicio,
 				fechaFin,
-				cuentaId: cuentaId || "todas",
+				cuentaId: cuentaId ? String(cuentaId) : "todas",
 				tipo: tipo || "todos",
 			},
 		};
 
 		if (cuentaId) {
 			const cuenta = await prisma.cuentas.findFirst({
-				where: { id: Number(cuentaId), usuarioId: req.userId },
+				where: { id: Number(cuentaId), usuarioId: req.userId, estado: "activo" },
 				select: { id: true, nombre: true, tipo: true },
 			});
 
@@ -161,12 +145,12 @@ const getMovimientosByDateRange = async (req, res, next) => {
 
 const getMovimientos = async (req, res, next) => {
 	const { cuentaId } = req.params;
-	const currentPage = parseInt(req.query.page ?? 1);
+	const currentPage = req.query.page;
 	const skip = (currentPage - 1) * PAGE_SIZE;
 
 	try {
 		const cuenta = await prisma.cuentas.findFirst({
-			where: { id: Number(cuentaId), usuarioId: req.userId },
+			where: { id: Number(cuentaId), usuarioId: req.userId, estado: "activo" },
 		});
 		if (!cuenta) {
 			return next(notFound("Cuenta no encontrada"));
@@ -204,7 +188,8 @@ const getMovimiento = async (req, res, next) => {
 		const movimiento = await prisma.movimientos.findFirst({
 			where: {
 				id: Number(id),
-				cuentas: { usuarioId: req.userId },
+				estado: "activo",
+				cuentas: { usuarioId: req.userId, estado: "activo" },
 			},
 			include: { cuentas: true },
 		});
@@ -225,7 +210,7 @@ const createMovimiento = async (req, res, next) => {
 	const { tipo, monto, descripcion, createdAt } = req.body;
 	try {
 		const cuenta = await prisma.cuentas.findFirst({
-			where: { id: Number(cuentaId), usuarioId: req.userId },
+			where: { id: Number(cuentaId), usuarioId: req.userId, estado: "activo" },
 		});
 
 		if (!cuenta) {
@@ -254,22 +239,25 @@ const updateMovimiento = async (req, res, next) => {
 		const movimiento = await prisma.movimientos.findFirst({
 			where: {
 				id: Number(id),
-				cuentas: { usuarioId: req.userId },
+				estado: "activo",
+				cuentas: { usuarioId: req.userId, estado: "activo" },
 			},
 		});
 		if (!movimiento) {
 			return next(notFound("Movimiento no encontrado"));
 		}
 
+		// Igual que en las cuentas: el campo ausente se conserva, el campo
+		// vacío se borra
 		const actualizado = await prisma.movimientos.update({
 			where: { id: movimiento.id },
 			data: {
-				tipo: tipo ?? movimiento.tipo,
-				monto: monto ?? movimiento.monto,
-				descripcion: descripcion ?? movimiento.descripcion,
-				createdAt: createdAt
-					? new Date(createdAt)
-					: movimiento.createdAt,
+				...(tipo !== undefined && { tipo }),
+				...(monto !== undefined && { monto }),
+				...(descripcion !== undefined && {
+					descripcion: descripcion === "" ? null : descripcion,
+				}),
+				...(createdAt !== undefined && { createdAt: new Date(createdAt) }),
 			},
 		});
 
@@ -285,7 +273,8 @@ const deleteMovimiento = async (req, res, next) => {
 		const movimiento = await prisma.movimientos.findFirst({
 			where: {
 				id: Number(id),
-				cuentas: { usuarioId: req.userId },
+				estado: "activo",
+				cuentas: { usuarioId: req.userId, estado: "activo" },
 			},
 		});
 		if (!movimiento) {

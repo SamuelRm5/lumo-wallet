@@ -168,8 +168,8 @@ const updateProfile = async (req, res, next) => {
 		const actualizado = await prisma.usuarios.update({
 			where: { id: usuario.id },
 			data: {
-				nombre: nombre || usuario.nombre,
-				email: email || usuario.email,
+				...(nombre !== undefined && { nombre }),
+				...(email !== undefined && { email }),
 			},
 		});
 
@@ -187,22 +187,6 @@ const changePassword = async (req, res, next) => {
 	const { currentPassword, newPassword } = req.body;
 
 	try {
-		if (!currentPassword || !newPassword) {
-			return next(
-				validationError(
-					"Contraseña actual y nueva contraseña son requeridas",
-				),
-			);
-		}
-
-		if (newPassword.length < 6) {
-			return next(
-				validationError(
-					"La nueva contraseña debe tener al menos 6 caracteres",
-				),
-			);
-		}
-
 		const usuario = await prisma.usuarios.findUnique({
 			where: { id: req.userId },
 		});

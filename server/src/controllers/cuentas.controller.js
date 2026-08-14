@@ -109,18 +109,22 @@ const updateCuenta = async (req, res, next) => {
 	const { nombre, descripcion, tipo } = req.body;
 	try {
 		const cuenta = await prisma.cuentas.findFirst({
-			where: { id: Number(id), usuarioId: req.userId },
+			where: { id: Number(id), usuarioId: req.userId, estado: "activo" },
 		});
 		if (!cuenta) {
 			return next(notFound("Cuenta no encontrada"));
 		}
 
+		// Se distingue el campo ausente del campo vacío: enviar una descripción
+		// vacía debe borrarla, no conservar la anterior
 		const actualizada = await prisma.cuentas.update({
 			where: { id: cuenta.id },
 			data: {
-				nombre: nombre || cuenta.nombre,
-				descripcion: descripcion || cuenta.descripcion,
-				tipo: tipo || cuenta.tipo,
+				...(nombre !== undefined && { nombre }),
+				...(descripcion !== undefined && {
+					descripcion: descripcion === "" ? null : descripcion,
+				}),
+				...(tipo !== undefined && { tipo }),
 			},
 		});
 
@@ -134,7 +138,7 @@ const deleteCuenta = async (req, res, next) => {
 	const { id } = req.params;
 	try {
 		const cuenta = await prisma.cuentas.findFirst({
-			where: { id: Number(id), usuarioId: req.userId },
+			where: { id: Number(id), usuarioId: req.userId, estado: "activo" },
 		});
 		if (!cuenta) {
 			return next(notFound("Cuenta no encontrada"));

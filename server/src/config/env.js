@@ -38,6 +38,15 @@ const schema = z.object({
 		"http://localhost:5173",
 	),
 
+	// Cerrado por defecto: es una app familiar, el registro abierto solo
+	// permite llenar la base
+	ALLOW_PUBLIC_REGISTRATION: z
+		.enum(["true", "false"])
+		.default("false")
+		.transform(value => value === "true"),
+	RATE_LIMIT_AUTH_WINDOW_MIN: numeric(15, { min: 1 }),
+	RATE_LIMIT_AUTH_MAX: numeric(10, { min: 1 }),
+
 	// La lee también el CLI de Prisma desde .env, así que el nombre es fijo
 	DATABASE_URL: nonEmpty("DATABASE_URL es obligatoria"),
 });

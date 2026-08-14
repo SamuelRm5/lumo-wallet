@@ -135,3 +135,23 @@ Reversión: solo código. `git revert` de la fase.
 ## Desviaciones
 
 - El plan de `docs/BACKEND.md` §12 no menciona el filtro de estado activo ni el arreglo de `updateCuenta`. Se incluyen aquí porque son de una línea y la fase ya recorre esos mismos archivos.
+- **`filtros.cuentaId` se sigue devolviendo como texto.** Al coaccionar `cuentaId` a número, `zod` cambiaba el tipo de ese campo en la respuesta. `filtros` es un eco de lo que pidió el cliente, así que se convierte de vuelta a texto para no alterar el contrato.
+- **El arreglo de "campo vacío no borra" se aplicó también a `updateMovimiento`**, no solo a `updateCuenta`: tenía el mismo patrón con `??`.
+- **Se reordenaron las rutas** para que las de prefijo literal (`/byid/:id`) se declaren antes que las paramétricas (`/:cuentaId`). Funcionaba por el número de segmentos, pero dependía de una coincidencia, no de una regla.
+
+---
+
+## Estado de ejecución
+
+Cerrada. 20 comprobaciones nuevas en verde y las 26 de la Fase 1 sin regresión:
+
+- `POST /auth/login` sin `password` devuelve `400` con `details` señalando `body.password`.
+- `monto` negativo, `monto` cero, `tipo` fuera del enum, `id` no numérico, rango de fechas invertido y formato de fecha inválido: todos `400`.
+- `createdAt` a un año vista se rechaza; dentro de la hora siguiente se acepta.
+- `PUT /cuentas/:id` con `descripcion: ""` la deja en `null`; sin el campo, la conserva.
+- Leer, editar o volver a borrar un movimiento ya borrado devuelve `404`. Lo mismo con una cuenta archivada y sus movimientos.
+- `POST /auth/register` con la bandera apagada devuelve `403 FORBIDDEN`.
+- Los intentos repetidos de login acaban en `429 RATE_LIMITED` con el formato del catálogo.
+- Las capturas de `.snapshots/` siguen idénticas a las de la Fase 1.
+
+Nota operativa: `ALLOW_PUBLIC_REGISTRATION` está en `false`. Para dar de alta un usuario nuevo hay que ponerla en `true`, registrarlo y volver a apagarla.
