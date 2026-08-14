@@ -50,3 +50,9 @@ coverage/
 .idea/
 *.sublime-project
 *.sublime-workspace
+
+.claude
+*Lumo Wallet Design System*
+
+# Capturas de respuestas para comparar antes y despues de una fase
+server/plans/.snapshots/
