@@ -13,7 +13,7 @@ const MainLayout = () => {
   const isHomeActive = location.pathname.startsWith("/home");
   const isDepositesActive = location.pathname.startsWith("/deposites");
 
-  // ✅ Función para navegación inteligente con texto contextual
+  // Función para navegación inteligente con texto contextual
   const getNavigationInfo = () => {
     const currentPath = location.pathname;
 
@@ -62,7 +62,7 @@ const MainLayout = () => {
 
   const navigationInfo = getNavigationInfo();
 
-  // ✅ Función para manejar logout
+  // Función para manejar logout
   const handleLogout = () => {
     if (window.confirm("¿Estás seguro de cerrar sesión?")) {
       logout();
@@ -70,7 +70,7 @@ const MainLayout = () => {
     setShowUserMenu(false);
   };
 
-  // ✅ Función para ir a cambio de contraseña
+  // Función para ir a cambio de contraseña
   const handleChangePassword = () => {
     navigate("/change-password");
     setShowUserMenu(false);
@@ -91,7 +91,7 @@ const MainLayout = () => {
           <span className="text-sm">{navigationInfo.text}</span>
         </button>
 
-        {/* ✅ Menú de usuario */}
+        {/* Menú de usuario */}
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}

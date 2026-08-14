@@ -46,7 +46,7 @@ export default function (sequelize) {
 			sequelize,
 			modelName: "movimiento",
 			tableName: "movimientos",
-			// 🚀 ÍNDICES DE RENDIMIENTO OPTIMIZADOS
+			// ÍNDICES DE RENDIMIENTO OPTIMIZADOS
 			indexes: [
 				{
 					// Índice compuesto crítico para consultas principales
@@ -78,7 +78,7 @@ export default function (sequelize) {
 					comment: "Optimización para gráficos y reportes temporales",
 				},
 				{
-					// 📅 NUEVO: Índice optimizado para rangos de fechas
+					// Índice optimizado para rangos de fechas
 					name: "idx_movimientos_fecha_rango",
 					fields: ["cuentaId", "createdAt", "estado"],
 					using: "BTREE",

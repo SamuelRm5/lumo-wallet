@@ -6,7 +6,7 @@ const instance = axios.create({
   timeout: 10000,
 });
 
-// ✅ Interceptor para manejar errores de autenticación
+// Interceptor para manejar errores de autenticación
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -28,21 +28,21 @@ instance.interceptors.response.use(
 );
 
 export const api = {
-  // ✅ Configurar token de autorización
+  // Configurar token de autorización
   setAuthToken: (token) => {
     if (token) {
       instance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     }
   },
 
-  // ✅ Limpiar token de autorización
+  // Limpiar token de autorización
   clearAuthToken: () => {
     delete instance.defaults.headers.common["Authorization"];
   },
 
   // ===== ENDPOINTS DE AUTENTICACIÓN =====
 
-  // ✅ Login de usuario
+  // Login de usuario
   login: async (email, password) => {
     try {
       const response = await instance.post("/auth/login", {
@@ -55,7 +55,7 @@ export const api = {
     }
   },
 
-  // ✅ Validar token
+  // Validar token
   validateToken: async () => {
     try {
       const response = await instance.get("/auth/validate");
@@ -65,7 +65,7 @@ export const api = {
     }
   },
 
-  // ✅ Obtener perfil de usuario
+  // Obtener perfil de usuario
   getProfile: async () => {
     try {
       const response = await instance.get("/auth/profile");
@@ -75,7 +75,7 @@ export const api = {
     }
   },
 
-  // ✅ Cambiar contraseña
+  // Cambiar contraseña
   changePassword: async (currentPassword, newPassword) => {
     try {
       const response = await instance.put("/auth/change-password", {
@@ -129,7 +129,7 @@ export const api = {
       throw error;
     }
   },
-  // 🔍 Buscar movimientos por rango de fechas con paginación
+  // Buscar movimientos por rango de fechas con paginación
   getMovementsByDateRange: async (
     fechaInicio,
     fechaFin,

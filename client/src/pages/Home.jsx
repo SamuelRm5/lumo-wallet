@@ -25,7 +25,7 @@ const Home = () => {
             (acc, account) => {
               const cuenta = {
                 ...account,
-                total: parseInt(account.total, 10), // ✅ convierte el total a número
+                total: parseInt(account.total, 10),
               };
 
               if (cuenta.tipo === "normal") {

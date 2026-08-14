@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { api } from "../services/api";
 
 /**
- * 🚀 Hook personalizado para manejar movimientos con paginación
+ * Hook personalizado para manejar movimientos con paginación
  *
  * @param {string} accountId - ID de la cuenta
  * @returns {Object} - Estado y funciones para manejar movimientos
@@ -18,7 +18,7 @@ export const useMovements = (accountId) => {
     hasNextPage: false,
   });
 
-  // 📦 Función para cargar movimientos (sin filtros)
+  // Función para cargar movimientos (sin filtros)
   const loadMovements = useCallback(
     async (page = 1) => {
       try {
@@ -51,7 +51,7 @@ export const useMovements = (accountId) => {
     [accountId]
   );
 
-  // 🔍 Función para cargar movimientos con filtros
+  // Función para cargar movimientos con filtros
   const loadFilteredMovements = useCallback(
     async (filters, page = 1) => {
       try {
@@ -89,7 +89,7 @@ export const useMovements = (accountId) => {
     [accountId]
   );
 
-  // 🧮 Función para obtener balance (ahora viene del backend)
+  // Función para obtener balance (ahora viene del backend)
   const getBalance = useCallback(() => {
     // Si el balance viene del backend, usarlo; sino calcular en frontend
     if (account && typeof account.balance === "number") {
@@ -104,7 +104,7 @@ export const useMovements = (accountId) => {
     }, 0);
   }, [account, movements]);
 
-  // 🔄 Función para reiniciar estado
+  // Función para reiniciar estado
   const resetMovements = useCallback(() => {
     setMovements([]);
     setPagination({

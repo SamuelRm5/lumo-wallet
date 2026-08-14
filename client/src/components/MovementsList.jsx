@@ -2,7 +2,7 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import MovementCard from "./MovementCard";
 
 /**
- * 📋 Componente para renderizar lista de movimientos con scroll infinito
+ * Componente para renderizar lista de movimientos con scroll infinito
  *
  * @param {Object} props - Propiedades del componente
  * @param {Array} props.movements - Array de movimientos
@@ -18,7 +18,7 @@ const MovementsList = ({
   pagination,
   lastElementRef,
 }) => {
-  // 🔄 Indicador de carga inicial
+  // Indicador de carga inicial
   if (loading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -32,12 +32,12 @@ const MovementsList = ({
     );
   }
 
-  // 📋 Lista de movimientos
+  // Lista de movimientos
   return (
     <div className="grid gap-2">
       {movements.length > 0 ? (
         movements.map((movement, index) => {
-          // 🎯 Asignar ref al último elemento para IntersectionObserver
+          // Asignar ref al último elemento para IntersectionObserver
           if (movements.length === index + 1) {
             return (
               <div ref={lastElementRef} key={movement.id}>
@@ -60,7 +60,7 @@ const MovementsList = ({
         </div>
       )}
 
-      {/* 🔄 Indicador de carga para más movimientos */}
+      {/* Indicador de carga para más movimientos */}
       {loadingMore && (
         <div className="flex justify-center items-center py-4">
           <Icon
@@ -74,7 +74,7 @@ const MovementsList = ({
         </div>
       )}
 
-      {/* 📊 Información de paginación final */}
+      {/* Información de paginación final */}
       {movements.length > 0 && !pagination.hasNextPage && (
         <div className="text-center py-4 text-sm text-gray-500 border-t border-gray-200 mt-4">
           <Icon

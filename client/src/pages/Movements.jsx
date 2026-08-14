@@ -8,7 +8,7 @@ import MovementsList from "../components/MovementsList";
 const Movements = () => {
   const { idAccount } = useParams();
 
-  // 🎯 Hook integrador con toda la lógica
+  // Hook integrador con toda la lógica
   const {
     account,
     movements,
@@ -41,10 +41,10 @@ const Movements = () => {
         </div>
       ) : (
         <div>
-          {/* 🏦 Header de la cuenta */}
+          {/* Header de la cuenta */}
           <AccountHeader account={account} balance={getBalance()} />
 
-          {/* ➕ Botón de agregar movimiento */}
+          {/* Botón de agregar movimiento */}
           <Link
             to="create"
             className="bg-primary text-white w-full rounded-xl shadow flex items-center gap-3 p-3 mb-3 hover:bg-primary-800 transition"
@@ -53,7 +53,7 @@ const Movements = () => {
             <span className="font-medium text-sm">Agregar movimiento</span>
           </Link>
 
-          {/* 🔍 Filtros de movimientos */}
+          {/* Filtros de movimientos */}
           <MovementFilters
             filterOpen={filterOpen}
             dateFilter={dateFilter}
@@ -67,7 +67,7 @@ const Movements = () => {
             canApplyFilter={isFilterValid()}
           />
 
-          {/* 📋 Lista de movimientos con scroll infinito */}
+          {/* Lista de movimientos con scroll infinito */}
           <MovementsList
             movements={movements}
             loading={false} // El loading principal ya se maneja arriba

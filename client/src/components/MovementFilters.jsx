@@ -1,7 +1,7 @@
 import { Icon } from "@iconify/react/dist/iconify.js";
 
 /**
- * 🔍 Componente para filtros de movimientos con animación
+ * Componente para filtros de movimientos con animación
  *
  * @param {Object} props - Propiedades del componente
  * @param {boolean} props.filterOpen - Si el panel está abierto
@@ -29,7 +29,7 @@ const MovementFilters = ({
 }) => {
   return (
     <div className="mb-5">
-      {/* 🎛️ Botón de filtro */}
+      {/* Botón de filtro */}
       <button
         onClick={onToggleFilter}
         className={`w-full rounded-xl shadow flex items-center justify-between p-3 transition-all duration-300 ${
@@ -53,14 +53,14 @@ const MovementFilters = ({
         />
       </button>
 
-      {/* 📋 Panel de filtros con animación */}
+      {/* Panel de filtros con animación */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
           filterOpen ? "max-h-96 opacity-100 mt-3" : "max-h-0 opacity-0"
         }`}
       >
         <div className="bg-gray-50 rounded-xl p-4 space-y-4">
-          {/* 📅 Inputs de fecha */}
+          {/* Inputs de fecha */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -86,7 +86,7 @@ const MovementFilters = ({
             </div>
           </div>
 
-          {/* 🏷️ Filtro por tipo */}
+          {/* Filtro por tipo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo de movimiento
@@ -112,7 +112,7 @@ const MovementFilters = ({
             </div>
           </div>
 
-          {/* ⚡ Botones de acción */}
+          {/* Botones de acción */}
           <div className="flex gap-2 pt-2">
             <button
               onClick={onApplyFilter}
@@ -135,7 +135,7 @@ const MovementFilters = ({
         </div>
       </div>
 
-      {/* 🏷️ Indicador de filtro activo */}
+      {/* Indicador de filtro activo */}
       {dateFilter.active && (
         <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mt-3">
           <div className="flex items-center justify-between">

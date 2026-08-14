@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Todas las rutas de movimientos requieren autenticación
 router
-	// 📅 NUEVA: Búsqueda por rango de fechas (debe ir ANTES de /:cuentaId para evitar conflictos)
+	// Búsqueda por rango de fechas (debe ir ANTES de /:cuentaId para evitar conflictos)
 	.get(
 		"/search/date-range",
 		authMiddleware,

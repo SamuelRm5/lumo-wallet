@@ -1,7 +1,7 @@
 import { useCallback, useRef, useEffect } from "react";
 
 /**
- * 📡 Hook para manejar IntersectionObserver y scroll infinito
+ * Hook para manejar IntersectionObserver y scroll infinito
  *
  * @param {Function} loadMore - Función que se ejecuta cuando se necesita cargar más datos
  * @param {boolean} hasNextPage - Si hay más páginas disponibles
@@ -11,7 +11,7 @@ import { useCallback, useRef, useEffect } from "react";
 export const useInfiniteScroll = (loadMore, hasNextPage, isLoading) => {
   const observerRef = useRef();
 
-  // 🎯 Callback ref para el último elemento
+  // Callback ref para el último elemento
   const lastElementRef = useCallback(
     (node) => {
       // No hacer nada si está cargando
@@ -43,7 +43,7 @@ export const useInfiniteScroll = (loadMore, hasNextPage, isLoading) => {
     [loadMore, hasNextPage, isLoading]
   );
 
-  // 🧹 Cleanup al desmontar
+  // Cleanup al desmontar
   useEffect(() => {
     return () => {
       if (observerRef.current) {

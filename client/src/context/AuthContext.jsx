@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // ✅ Validar token al inicializar la aplicación
+  // Validar token al inicializar la aplicación
   useEffect(() => {
     const validateToken = async () => {
       const storedToken = localStorage.getItem("token");
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
     validateToken();
   }, []);
 
-  // ✅ Función de login (solo login, sin registro)
+  // Función de login (solo login, sin registro)
   const login = async (email, password) => {
     setLoading(true);
     try {
@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ Función para cambiar contraseña
+  // Función para cambiar contraseña
   const changePassword = async (currentPassword, newPassword) => {
     try {
       const response = await api.changePassword(currentPassword, newPassword);
@@ -74,12 +74,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ Función de logout
+  // Función de logout
   const logout = () => {
     clearSession();
   };
 
-  // ✅ Limpiar sesión completamente
+  // Limpiar sesión completamente
   const clearSession = () => {
     setToken(null);
     setUser(null);
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }) => {
     api.clearAuthToken();
   };
 
-  // ✅ Manejar expiración de token
+  // Manejar expiración de token
   const handleTokenExpiration = () => {
     console.log("Token expirado, cerrando sesión...");
     clearSession();

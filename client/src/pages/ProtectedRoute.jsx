@@ -5,7 +5,7 @@ import Login from "./Login";
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
-  // ✅ Mostrar loading mientras valida token
+  // Mostrar loading mientras valida token
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -21,12 +21,12 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // ✅ Mostrar login si no está autenticado
+  // Mostrar login si no está autenticado
   if (!isAuthenticated) {
     return <Login />;
   }
 
-  // ✅ Mostrar contenido protegido si está autenticado
+  // Mostrar contenido protegido si está autenticado
   return children;
 };
 

@@ -14,7 +14,7 @@ export const applyAssociations = sequelize => {
 		onDelete: "CASCADE",
 	});
 
-	// Relación Cuenta -> Movimientos (existente)
+	// Relación Cuenta -> Movimientos
 	Cuentas.hasMany(Movimientos, {
 		foreignKey: "cuentaId",
 		as: "movimientos",

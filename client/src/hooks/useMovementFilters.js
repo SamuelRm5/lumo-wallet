@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 
 /**
- * 🔍 Hook para manejar filtros de movimientos
+ * Hook para manejar filtros de movimientos
  *
  * @returns {Object} - Estado y funciones para manejar filtros
  */
@@ -14,7 +14,7 @@ export const useMovementFilters = () => {
   });
   const [filterType, setFilterType] = useState(""); // 'ingreso', 'egreso', o ''
 
-  // 🎯 Aplicar filtro
+  // Aplicar filtro
   const applyFilter = useCallback(() => {
     if (dateFilter.fechaInicio && dateFilter.fechaFin) {
       setDateFilter((prev) => ({ ...prev, active: true }));
@@ -23,7 +23,7 @@ export const useMovementFilters = () => {
     return false; // Indica que faltan datos para aplicar
   }, [dateFilter.fechaInicio, dateFilter.fechaFin]);
 
-  // 🧹 Limpiar filtros
+  // Limpiar filtros
   const clearFilter = useCallback(() => {
     setDateFilter({
       fechaInicio: "",
@@ -34,12 +34,12 @@ export const useMovementFilters = () => {
     setFilterOpen(false);
   }, []);
 
-  // 🔄 Toggle panel de filtros
+  // Toggle panel de filtros
   const toggleFilter = useCallback(() => {
     setFilterOpen((prev) => !prev);
   }, []);
 
-  // 📅 Actualizar fecha de inicio
+  // Actualizar fecha de inicio
   const setStartDate = useCallback((fecha) => {
     setDateFilter((prev) => ({
       ...prev,
@@ -47,7 +47,7 @@ export const useMovementFilters = () => {
     }));
   }, []);
 
-  // 📅 Actualizar fecha de fin
+  // Actualizar fecha de fin
   const setEndDate = useCallback((fecha) => {
     setDateFilter((prev) => ({
       ...prev,
@@ -55,12 +55,12 @@ export const useMovementFilters = () => {
     }));
   }, []);
 
-  // 🏷️ Establecer tipo de filtro
+  // Establecer tipo de filtro
   const setType = useCallback((tipo) => {
     setFilterType(tipo);
   }, []);
 
-  // 📊 Obtener filtros activos para la API
+  // Obtener filtros activos para la API
   const getActiveFilters = useCallback(() => {
     if (!dateFilter.active) return null;
 
@@ -76,7 +76,7 @@ export const useMovementFilters = () => {
     filterType,
   ]);
 
-  // ✅ Validar si los filtros están completos
+  // Validar si los filtros están completos
   const isFilterValid = useCallback(() => {
     return dateFilter.fechaInicio && dateFilter.fechaFin;
   }, [dateFilter.fechaInicio, dateFilter.fechaFin]);

@@ -46,7 +46,7 @@ export default function (sequelize) {
 			sequelize,
 			modelName: "cuenta",
 			tableName: "cuentas",
-			// 🚀 ÍNDICES DE RENDIMIENTO OPTIMIZADOS
+			// ÍNDICES DE RENDIMIENTO OPTIMIZADOS
 			indexes: [
 				{
 					// Índice compuesto crítico para consultas por usuario

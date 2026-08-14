@@ -1,5 +1,5 @@
 /**
- * 🏦 Componente para mostrar información de la cuenta y balance
+ * Componente para mostrar información de la cuenta y balance
  *
  * @param {Object} props - Propiedades del componente
  * @param {Object} props.account - Información de la cuenta

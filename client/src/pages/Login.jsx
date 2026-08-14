@@ -12,7 +12,7 @@ const Login = () => {
 
   const { login } = useAuth();
 
-  // ✅ Validaciones del formulario
+  // Validaciones del formulario
   const validateForm = () => {
     const newErrors = {};
 
@@ -30,7 +30,7 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ Manejar envío del formulario
+  // Manejar envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -49,7 +49,7 @@ const Login = () => {
     }
   };
 
-  // ✅ Manejar cambios en inputs
+  // Manejar cambios en inputs
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({

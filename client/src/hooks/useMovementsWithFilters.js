@@ -4,13 +4,13 @@ import { useMovementFilters } from "./useMovementFilters";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 
 /**
- * 🎯 Hook integrador para manejar movimientos con filtros y scroll infinito
+ * Hook integrador para manejar movimientos con filtros y scroll infinito
  *
  * @param {string} accountId - ID de la cuenta
  * @returns {Object} - Estado y funciones combinadas
  */
 export const useMovementsWithFilters = (accountId) => {
-  // 📦 Hook de movimientos
+  // Hook de movimientos
   const {
     account,
     movements,
@@ -23,7 +23,7 @@ export const useMovementsWithFilters = (accountId) => {
     resetMovements,
   } = useMovements(accountId);
 
-  // 🔍 Hook de filtros
+  // Hook de filtros
   const {
     filterOpen,
     dateFilter,
@@ -38,7 +38,7 @@ export const useMovementsWithFilters = (accountId) => {
     isFilterValid,
   } = useMovementFilters();
 
-  // 🔄 Función para cargar más páginas (para scroll infinito)
+  // Función para cargar más páginas (para scroll infinito)
   const loadMoreMovements = useCallback(() => {
     const nextPage = pagination.currentPage + 1;
     const filters = getActiveFilters();
@@ -55,14 +55,14 @@ export const useMovementsWithFilters = (accountId) => {
     loadMovements,
   ]);
 
-  // 📡 Hook de scroll infinito
+  // Hook de scroll infinito
   const lastElementRef = useInfiniteScroll(
     loadMoreMovements,
     pagination.hasNextPage,
     loadingMore
   );
 
-  // ⚡ Cargar datos iniciales
+  // Cargar datos iniciales
   useEffect(() => {
     if (accountId) {
       resetMovements();
@@ -70,7 +70,7 @@ export const useMovementsWithFilters = (accountId) => {
     }
   }, [accountId, loadMovements, resetMovements]);
 
-  // 📅 Aplicar filtros cuando se activan
+  // Aplicar filtros cuando se activan
   useEffect(() => {
     if (dateFilter.active) {
       const filters = getActiveFilters();
@@ -86,7 +86,7 @@ export const useMovementsWithFilters = (accountId) => {
     resetMovements,
   ]);
 
-  // 🎯 Función para aplicar filtro
+  // Función para aplicar filtro
   const handleApplyFilter = useCallback(() => {
     const applied = applyFilter();
     if (!applied) {
@@ -94,7 +94,7 @@ export const useMovementsWithFilters = (accountId) => {
     }
   }, [applyFilter]);
 
-  // 🧹 Función para limpiar filtros
+  // Función para limpiar filtros
   const handleClearFilter = useCallback(() => {
     clearFilter();
     resetMovements();
