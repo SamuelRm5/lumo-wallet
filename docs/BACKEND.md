@@ -51,7 +51,8 @@ Verificado contra el código. La columna indica si el rediseño lo resuelve solo
 | 2.17 | `.sequelizerc` apunta a `src/database/config/config.js`, que no existe | Cerrado en la Fase 1 |
 | 2.18 | `optionalAuthMiddleware` exportado y sin usar en ninguna ruta | Cerrado en la Fase 0 |
 | 2.19 | `parseInt` sobre el balance en `movimientos.controller.js` truncaría los centavos cuando `monto` pase a `Decimal(14,2)` | Fase 3, dependencia dura del cambio de tipo |
-| 2.20 | `ORDER BY createdAt DESC` sin desempate: con dos filas del mismo instante el orden lo decide MySQL, y paginar sobre él puede repetir o saltarse filas. En esta app el empate es lo normal, no la excepción: cada evento se registra hoy como dos movimientos a la vez | Mitigado en la Fase 1 con desempate por `id`; lo cierra la paginación por cursor de §4 en la Fase 4 |
+| 2.20 | `ORDER BY createdAt DESC` sin desempate: con dos filas del mismo instante el orden lo decide MySQL, y paginar sobre él puede repetir o saltarse filas. En esta app el empate es lo normal, no la excepción: cada evento se registra hoy como dos movimientos a la vez | Cerrado en la Fase 4 con la paginación por cursor, que desempata por `id` |
+| 2.21 | El corte de rango a medianoche UTC (§2.1) reaparece en cualquier endpoint nuevo que acepte fechas: `z.coerce.date()` sobre `2026-08-05` produce medianoche UTC y deja fuera el día entero | Cerrado en la Fase 4: los rangos pasan por `rangeStart` y `rangeEnd`, que resuelven en `APP_TIMEZONE`. Todo endpoint nuevo con fechas debe usarlos |
 
 El detalle de ejecución de cada fase está en `server/plans/`.
 

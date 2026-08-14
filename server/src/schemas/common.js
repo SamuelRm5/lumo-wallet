@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { endOfDay, startOfDay } from "../lib/date.js";
 
 const HOURS_24_MS = 24 * 60 * 60 * 1000;
 
@@ -46,3 +47,24 @@ export const pastOrPresentDate = z
 export const dateOnly = z
 	.string()
 	.regex(/^\d{4}-\d{2}-\d{2}$/, "Formato esperado: 2025-01-01");
+
+/**
+ * Extremos de un rango de búsqueda. Una fecha sin hora se resuelve en la zona
+ * de la aplicación y el extremo final incluye el día entero: `new Date(
+ * "2026-08-05")` es medianoche UTC y dejaría fuera todo lo registrado ese día.
+ */
+const rangeBound = resolve =>
+	z
+		.string()
+		.min(1, "La fecha no puede estar vacía")
+		.transform((value, ctx) => {
+			const resolved = resolve(value);
+			if (!resolved) {
+				ctx.addIssue({ code: "custom", message: "La fecha no es válida" });
+				return z.NEVER;
+			}
+			return resolved;
+		});
+
+export const rangeStart = rangeBound(startOfDay);
+export const rangeEnd = rangeBound(endOfDay);

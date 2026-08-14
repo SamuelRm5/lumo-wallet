@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma.js";
 import { conflict, notFound, validationError } from "../lib/errors.js";
+import { cursorFilter, encodeCursor } from "../lib/cursor.js";
 
 /**
  * Los dos asientos que genera cada forma de operación, con el signo ya
@@ -364,3 +365,147 @@ export const getOperation = async (userId, id) => {
 };
 
 export { present, OPERATION_SHAPE };
+
+const OPERATION_LIST_SHAPE = {
+	select: {
+		id: true,
+		kind: true,
+		amount: true,
+		date: true,
+		description: true,
+		status: true,
+		origin: true,
+		category: { select: { id: true, name: true, icon: true, color: true } },
+		entries: {
+			select: {
+				accountId: true,
+				amount: true,
+				account: { select: { name: true } },
+			},
+		},
+	},
+};
+
+/**
+ * Listado paginado por cursor. Con offset, insertar una operación mientras el
+ * usuario hace scroll duplica o salta filas.
+ */
+export const listOperations = async (userId, filters) => {
+	const { limit, cursor, accountId, kind, categoryId, status, from, to, search } =
+		filters;
+
+	const where = {
+		userId,
+		...(kind && { kind }),
+		...(status && { status }),
+		...(categoryId && { categoryId }),
+		...(accountId && { entries: { some: { accountId } } }),
+		...((from || to) && {
+			date: { ...(from && { gte: from }), ...(to && { lte: to }) },
+		}),
+		...(search && { description: { contains: search } }),
+		...(cursor && cursorFilter(cursor)),
+	};
+
+	// Se pide uno de más para saber si hay página siguiente sin contar el total
+	const rows = await prisma.operation.findMany({
+		where,
+		orderBy: [{ date: "desc" }, { id: "desc" }],
+		take: limit + 1,
+		...OPERATION_LIST_SHAPE,
+	});
+
+	const hasMore = rows.length > limit;
+	const data = (hasMore ? rows.slice(0, limit) : rows).map(present);
+	const last = data.at(-1);
+
+	return {
+		data,
+		meta: {
+			nextCursor: hasMore && last ? encodeCursor(last) : null,
+			hasMore,
+		},
+	};
+};
+
+/**
+ * Agregados para los reportes. Las tres reglas de LOGICA_NEGOCIO.md 11:
+ * solo asientos de cuentas que no son source, para no contar cada operación
+ * dos veces; fuera las transferencias, que no son consumo; y los ajustes en
+ * línea propia, que no son lo mismo que "sin categoría".
+ */
+export const operationStats = async (userId, { from, to }) => {
+	const rows = await prisma.$queryRaw`
+		SELECT o.kind AS kind,
+		       o.categoryId AS categoryId,
+		       c.name AS categoryName,
+		       DATE_FORMAT(o.date, '%Y-%m') AS month,
+		       SUM(e.amount) AS signedTotal
+		FROM entries e
+		JOIN operations o ON o.id = e.operationId
+		JOIN accounts a ON a.id = e.accountId
+		LEFT JOIN categories c ON c.id = o.categoryId
+		WHERE o.userId = ${userId}
+		  AND o.deletedAt IS NULL
+		  AND o.status = 'confirmed'
+		  AND o.kind <> 'transfer'
+		  AND a.type <> 'source'
+		  AND o.date >= ${from}
+		  AND o.date <= ${to}
+		GROUP BY o.kind, o.categoryId, c.name, month`;
+
+	let income = 0;
+	let expense = 0;
+	let adjustments = 0;
+	const byCategory = new Map();
+	const byMonth = new Map();
+
+	for (const row of rows) {
+		const signed = Number(row.signedTotal);
+		const month = byMonth.get(row.month) ?? {
+			month: row.month,
+			income: 0,
+			expense: 0,
+			adjustments: 0,
+		};
+
+		if (row.kind === "income") {
+			income += signed;
+			month.income += signed;
+		} else if (row.kind === "expense") {
+			// El asiento de la cuenta que no es source viene en negativo
+			expense += -signed;
+			month.expense += -signed;
+		} else {
+			adjustments += signed;
+			month.adjustments += signed;
+		}
+
+		byMonth.set(row.month, month);
+
+		// Los ajustes van en línea propia, fuera del desglose: no tienen
+		// categoría y meterlos ahí crearía una categoría fantasma
+		if (row.kind === "adjustment") continue;
+
+		const key = `${row.kind}:${row.categoryId ?? "null"}`;
+		const entry = byCategory.get(key) ?? {
+			categoryId: row.categoryId,
+			name: row.categoryName ?? "Sin categoría",
+			kind: row.kind,
+			total: 0,
+		};
+		entry.total += row.kind === "income" ? signed : -signed;
+		byCategory.set(key, entry);
+	}
+
+	return {
+		from,
+		to,
+		income,
+		expense,
+		adjustments,
+		net: income - expense + adjustments,
+		byCategory: [...byCategory.values()].sort((a, b) => b.total - a.total),
+		byMonth: [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month)),
+	};
+};
