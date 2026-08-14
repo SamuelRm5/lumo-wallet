@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "expo-router";
 import { ActivityIndicator, Pressable, StyleSheet, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,7 +10,7 @@ import { ThemedView } from "@/components/themed-view";
 import { useSessionStore } from "@/store/session";
 import { useTheme } from "@/theme";
 
-// Perfil (Fase 1). Cuentas (Fase 2), categorías (Fase 3), recurrentes (Fase 5) y
+// Perfil y cuentas (Fases 1 y 2). Categorías (Fase 3), recurrentes (Fase 5) y
 // dispositivos (Fase 6) se agregan en sus fases respectivas.
 export default function SettingsScreen() {
 	const theme = useTheme();
@@ -19,6 +20,15 @@ export default function SettingsScreen() {
 		<ThemedView style={styles.container}>
 			<SafeAreaView style={styles.safeArea}>
 				<ThemedText variant="title">Ajustes</ThemedText>
+
+				<Link href="/accounts" asChild>
+					<Pressable style={StyleSheet.flatten([styles.navRow, { borderColor: theme.colors.borderSubtle }])}>
+						<ThemedText variant="bodyStrong">Cuentas</ThemedText>
+						<ThemedText variant="body" colorToken="textMuted">
+							›
+						</ThemedText>
+					</Pressable>
+				</Link>
 
 				<ThemedView colorToken="surfaceCard" style={[styles.card, { borderColor: theme.colors.borderSubtle }]}>
 					<ProfileSection />
@@ -199,6 +209,15 @@ const styles = StyleSheet.create({
 	container: { flex: 1 },
 	safeArea: { flex: 1, padding: 24, gap: 16 },
 	card: { borderRadius: 24, borderWidth: 1, padding: 20, gap: 10 },
+	navRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		borderWidth: 1,
+		borderRadius: 18,
+		paddingHorizontal: 20,
+		paddingVertical: 16,
+	},
 	input: {
 		borderWidth: 1,
 		borderRadius: 14,

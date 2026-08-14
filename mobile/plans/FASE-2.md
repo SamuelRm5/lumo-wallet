@@ -63,4 +63,22 @@ Listar con `?type=` para filtrar, detalle, crear, editar. Etiquetas de usuario e
 
 ## Desviaciones
 
-_(se completa durante la ejecución de la fase)_
+**Sin selector de fecha en conciliar.** `docs/APP_MOVIL.md` §4.4 muestra `date` en el ejemplo de `POST /accounts/:id/reconcile`, pero el campo es opcional en `server/src/schemas/accounts.schema.js` y el servicio ya usa `new Date()` cuando se omite. Se dejó sin campo de fecha en el formulario (siempre concilia "ahora") para no sumar una dependencia de date-picker en esta fase; se agrega si hace falta conciliar con fecha retroactiva.
+
+**Bug real encontrado y corregido**: `Link ... asChild` de expo-router exige que su hijo directo reciba un `style` ya aplanado, no un array — pasar `style={[a, b]}` a un `<Pressable>` bajo `asChild` tira `[expo-router]: You are passing an array of styles to a child of <Slot>` y la pantalla no renderiza. Afectaba las tres pantallas con navegación por `Link asChild` (`app/accounts/index.tsx`, `app/(tabs)/settings.tsx`). Se resolvió envolviendo esos arrays en `StyleSheet.flatten(...)`. Vale la pena recordarlo para las fases siguientes: cualquier `Pressable` como hijo directo de `Link asChild` necesita `StyleSheet.flatten`, no un array crudo.
+
+---
+
+## Estado de ejecución
+
+Verificado en el teléfono Android conectado, sobre LAN real, con el usuario de prueba de la Fase 1.
+
+- Creadas dos cuentas reales vía la app: "Salario" (`source`) y "Bancolombia" (`cash`).
+- Dashboard (`GET /summary`): "Lo que debería haber" / "Lo que hay" / descuadre se muestran tal cual llegan, sin ningún cálculo en el cliente.
+- Cuentas `source` no ofrecen el botón de conciliar (verificado abriendo el detalle de "Salario": la sección "Conciliar" no aparece).
+- Conciliar "Bancolombia" con `realBalance: 50000` (diferencia contra los $0 calculados): la cuenta `source` única se resolvió sola, sin pedir `sourceAccountId` — confirmado en el log del backend (`POST /accounts/119/reconcile`, sin ese campo en el body). Tras conciliar, el dashboard mostró `$50.000` en ambos lados y "Sin descuadre": el ajuste tocó las dos cuentas y la ecuación de control sigue en cero.
+- La fila de "Bancolombia" pasó a mostrar "conciliada 14/8/2026"; la de "Salario" sigue en "sin conciliar".
+- Archivar con saldo distinto de cero: el primer intento devolvió `409` y la app mostró el mensaje real del servidor ("La cuenta tiene un saldo de 50000 y borrarla dejaría un descuadre permanente. Repite con force=true si es lo que quieres") con la opción "Archivar de todas formas". Se probó hasta ese punto y se canceló a propósito, para no perder las cuentas de prueba antes de la Fase 3.
+- `npx tsc --noEmit` y `npx expo lint` sin errores.
+
+**No verificado en vivo**: `force=true` completándose de verdad (se canceló a propósito, ver arriba) y el flujo de edición de una cuenta ya existente guardando un cambio (se probó el formulario pero no se confirmó el `PUT` con un cambio real). Ninguno de los dos es un riesgo: son el mismo código ya probado en otras rutas (`updateAccount` usa el mismo patrón que el resto de formularios de la app, `force=true` es un query param que ya se ve construido correctamente en `src/api/accounts.ts`).

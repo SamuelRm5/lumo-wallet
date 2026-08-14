@@ -44,6 +44,7 @@ export default function RootLayout() {
 				<Stack.Protected guard={isAuthenticated}>
 					<Stack.Screen name="(tabs)" />
 					<Stack.Screen name="register-operation" options={{ presentation: "modal", headerShown: true, title: "Registrar" }} />
+					<Stack.Screen name="accounts" />
 				</Stack.Protected>
 				<Stack.Protected guard={!isAuthenticated}>
 					<Stack.Screen name="login" />

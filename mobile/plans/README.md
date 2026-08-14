@@ -8,7 +8,7 @@ Detalle de ejecución de las fases necesarias para construir `mobile/` según `d
 |---|---|---|---|
 | 0 | [FASE-0.md](FASE-0.md) | Andamio: scaffolding de Expo, entorno del dispositivo Android, tokens de diseño recortados | cerrada. Verificada en el teléfono real vía USB/adb reverse (no había LAN común disponible, ver Desviaciones) |
 | 1 | [FASE-1.md](FASE-1.md) | Sesión: login, refresh serializado, perfil | cerrada. Verificada en el teléfono real; la cola de refresco de un solo vuelo solo se revisó por código, ver Estado de ejecución |
-| 2 | [FASE-2.md](FASE-2.md) | Inicio y cuentas, incluida conciliación | pendiente |
+| 2 | [FASE-2.md](FASE-2.md) | Inicio y cuentas, incluida conciliación | cerrada. Verificada en el teléfono real, incluida la conciliación end-to-end |
 | 3 | [FASE-3.md](FASE-3.md) | Registrar operación (las cuatro formas) y categorías | pendiente |
 | 4 | [FASE-4.md](FASE-4.md) | Movimientos: listado por cursor, edición, confirmación de pendientes | pendiente |
 | 5 | [FASE-5.md](FASE-5.md) | Recurrentes y reportes | pendiente |
