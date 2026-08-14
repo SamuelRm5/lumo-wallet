@@ -11,6 +11,7 @@ Documentación, en orden de autoridad:
 |---|---|
 | `docs/LOGICA_NEGOCIO.md` | Definición funcional. Manda sobre todo lo demás |
 | `docs/BACKEND.md` | Modelo de datos, contrato de la API y plan de ejecución |
+| `docs/APP_MOVIL.md` | Secciones de la app móvil y el endpoint que alimenta cada una |
 | `docs/CONTEXTO_PROYECTO.md` | Obsoleto. Referencia histórica, contiene errores |
 
 ---
