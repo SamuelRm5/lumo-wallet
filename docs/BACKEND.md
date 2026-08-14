@@ -668,6 +668,34 @@ Conversión de cada fila de `movimientos`:
 - Una `operation` con `kind` = `income` si `tipo = 'ingreso'` o `expense` si `tipo = 'egreso'`; `userId` tomado de la cuenta; `amount` = `monto`; `date` = `createdAt`; `description`; `origin = 'legacy'`; `status = 'confirmed'`; `deletedAt` poblado si la fila estaba inactiva.
 - Un único `entry` con `accountId` = `cuentaId` y `amount` = `+monto` para ingreso, `−monto` para egreso.
 
+### 11.1 El signo de las cuentas `deuda` se invierte
+
+Verificado contra el volcado de producción: **las 27 cuentas `deuda` tienen saldo negativo o cero**, nunca positivo. En ellas un `egreso` significa "le presté más" y un `ingreso` significa "me abonó", así que el saldo almacenado es el negativo de lo que a uno le deben.
+
+Por eso `Home.jsx:63` usa `Math.abs` sobre el total de deudas, y por eso la ecuación cierra:
+
+| Fórmula | Resultado |
+|---|---|
+| `normal + deuda − fuente` | −139.257.200 |
+| `normal + \|deuda\| − fuente` | **0** |
+
+El cero exacto confirma que la captura del usuario está completa y es consistente; lo que está invertido es la convención de signo, no los datos.
+
+`LOGICA_NEGOCIO.md` §4 define la ecuación como `cash + receivable + liability − source = 0`, con `receivable` positivo. Para que el modelo nuevo cumpla eso sin arrastrar el `Math.abs`, la migración **invierte el signo de los asientos de las cuentas `deuda`**:
+
+| Cuenta | `tipo` del movimiento | `entries.amount` |
+|---|---|---|
+| `normal`, `fuente` | `ingreso` | `+monto` |
+| `normal`, `fuente` | `egreso` | `−monto` |
+| `deuda` → `receivable` | `ingreso` (me abonan) | `−monto` |
+| `deuda` → `receivable` | `egreso` (le presto) | `+monto` |
+
+Tras la inversión, `cash + receivable − source = 188.089.400 + 69.628.600 − 257.718.000 = 0`, sin valor absoluto en ninguna parte.
+
+Es además lo coherente con el modelo nuevo: prestar plata pasa a ser una transferencia `cash → receivable`, que por definición resta en la de origen y suma en la de destino.
+
+**Consecuencia visible:** el saldo mostrado de esas cuentas cambia de signo. Donde hoy se lee `−22.200.000` en Samy, se leerá `22.200.000`, que es lo que Samy debe.
+
 Las operaciones `legacy` tienen un solo asiento y por eso no cumplen el invariante de §6.2. La validación se aplica únicamente al escribir, nunca al leer.
 
 ---

@@ -181,3 +181,50 @@ Recomendación: **aceptar la ventana**, avisando antes, y encadenar las fases 3 
 
 - `deletedAt` de las filas históricas inactivas lleva la marca de tiempo de la migración, no la fecha real de baja, que nunca se guardó.
 - El catálogo de categorías se siembra para los usuarios existentes, no solo al crear usuarios nuevos como dice `docs/BACKEND.md` §10.
+- **Se invierte el signo de los asientos de las cuentas `deuda`.** No estaba previsto en `docs/BACKEND.md` §11 y se descubrió al restaurar producción. El razonamiento y los números están en §11.1.
+- **`usuarios` y `cuentas` también se renombran a `_legacy`**, no solo `movimientos`. `movimientos_legacy` tiene una clave foránea hacia `cuentas`, así que borrarla dejaría la tabla histórica rota. Las tres se declaran como modelos en `schema.prisma` para que Prisma no las vea como deriva, y se borran juntas con una migración propia al mes.
+
+---
+
+## Verificación de saldos: cuidado con el LEFT JOIN
+
+La primera versión de la consulta de verificación dio 13 cuentas descuadradas y **el error estaba en la consulta, no en la migración**. Vale la pena dejarlo escrito porque es fácil de repetir:
+
+```sql
+-- MAL: los asientos de operaciones borradas siguen sumando
+LEFT JOIN operations o ON o.id = e.operationId AND o.deletedAt IS NULL
+```
+
+Filtrar la tabla derecha de un `LEFT JOIN` dentro del `ON` no elimina filas: conserva la de la izquierda con la derecha en nulo. La condición tiene que ir en el `WHERE`, o el join tiene que ser interno:
+
+```sql
+-- BIEN
+SELECT SUM(e.amount) FROM entries e
+JOIN operations o ON o.id = e.operationId
+WHERE e.accountId = a.id AND o.deletedAt IS NULL AND o.status = 'confirmed'
+```
+
+Es exactamente el patrón que van a usar todos los cálculos de saldo de la Fase 4.
+
+---
+
+## Estado de ejecución
+
+Migración escrita y **ensayada de principio a fin sobre una copia de producción** (`cuentas_meli_ensayo`, restaurada desde el volcado del 14 de agosto de 2026). No aplicada a producción.
+
+Resultado del ensayo:
+
+| Comprobación | Resultado |
+|---|---|
+| Cuentas cuyo saldo no cuadra | **ninguna** |
+| `discrepancy` con la fórmula documentada, sin `Math.abs` | **0,00** |
+| `source` / `cash` / `receivable` | 257.718.000 / 188.089.400 / **+**69.628.600 |
+| Filas migradas | 2 usuarios, 27 cuentas, 1.646 operaciones, 1.646 asientos |
+| Categorías sembradas | 26 (13 por usuario) |
+| `movimientos_legacy` | 1.646 filas intactas |
+| Operaciones con borrado suave conservado | 39 |
+| `CHECK (amount > 0)` | rechaza un monto negativo |
+
+Deriva contra producción: `prisma migrate diff` devolvió una migración vacía, así que el `schema.prisma` de la Fase 1 reflejaba producción exactamente.
+
+**Pendiente:** aplicarla a producción. Requiere un volcado del día, no el usado en el ensayo, y abre la ventana de indisponibilidad descrita arriba hasta que la Fase 4 reemplace los endpoints.

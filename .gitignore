@@ -56,3 +56,7 @@ coverage/
 
 # Capturas de respuestas para comparar antes y despues de una fase
 server/plans/.snapshots/
+
+# Volcados de base de datos: contienen datos reales y hashes de contrasenas
+*.sql
+!server/prisma/migrations/**/*.sql

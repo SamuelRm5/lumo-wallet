@@ -7,72 +7,274 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model cuentas {
-  id          Int            @id @default(autoincrement())
+enum UserStatus {
+  active
+  disabled
+}
+
+enum AccountType {
+  source
+  cash
+  receivable
+  liability
+}
+
+enum CategoryKind {
+  income
+  expense
+}
+
+enum OperationKind {
+  income
+  expense
+  transfer
+  adjustment
+}
+
+enum OperationStatus {
+  pending
+  confirmed
+}
+
+enum OperationOrigin {
+  manual
+  recurring
+  reconciliation
+  legacy
+}
+
+enum RecurringKind {
+  income
+  expense
+  transfer
+}
+
+enum RecurringFrequency {
+  weekly
+  biweekly
+  monthly
+  yearly
+}
+
+enum RecurringMode {
+  auto
+  reminder
+}
+
+enum DevicePlatform {
+  android
+  ios
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(100)
+  email     String     @unique @db.VarChar(255)
+  password  String     @db.VarChar(255)
+  status    UserStatus @default(active)
+  createdAt DateTime   @default(now()) @db.DateTime(3)
+  updatedAt DateTime   @updatedAt @db.DateTime(3)
+
+  accounts       Account[]
+  categories     Category[]
+  operations     Operation[]
+  recurringRules RecurringRule[]
+  devices        Device[]
+  refreshTokens  RefreshToken[]
+
+  @@map("users")
+}
+
+model Account {
+  id               Int         @id @default(autoincrement())
+  userId           Int
+  name             String      @db.VarChar(100)
+  description      String?     @db.VarChar(255)
+  type             AccountType
+  currency         String      @default("COP") @db.Char(3)
+  /// Nulo en las cuentas source: no hay realidad externa contra la cual conciliarlas
+  lastReconciledAt DateTime?   @db.DateTime(3)
+  createdAt        DateTime    @default(now()) @db.DateTime(3)
+  updatedAt        DateTime    @updatedAt @db.DateTime(3)
+  deletedAt        DateTime?   @db.DateTime(3)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries Entry[]
+
+  recurringRulesAsSource RecurringRule[] @relation("RecurringSourceAccount")
+  recurringRulesAsFrom   RecurringRule[] @relation("RecurringFromAccount")
+  recurringRulesAsTo     RecurringRule[] @relation("RecurringToAccount")
+
+  @@index([userId, deletedAt])
+  @@index([userId, type])
+  @@map("accounts")
+}
+
+model Category {
+  id        Int          @id @default(autoincrement())
+  userId    Int
+  name      String       @db.VarChar(60)
+  /// Identificador semántico, no el nombre de un set de iconos concreto
+  icon      String?      @db.VarChar(60)
+  color     String?      @db.Char(7)
+  kind      CategoryKind
+  createdAt DateTime     @default(now()) @db.DateTime(3)
+  updatedAt DateTime     @updatedAt @db.DateTime(3)
+  deletedAt DateTime?    @db.DateTime(3)
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  operations     Operation[]
+  recurringRules RecurringRule[]
+
+  @@index([userId, kind])
+  @@map("categories")
+}
+
+model Operation {
+  id     Int             @id @default(autoincrement())
+  /// Denormalizado desde accounts para no unir en cada consulta
+  userId Int
+  kind   OperationKind
+  /// Siempre positivo. El signo vive en los asientos. CHECK (amount > 0) en la migración
+  amount Decimal         @db.Decimal(14, 2)
+
+  categoryId      Int?
+  /// La elige el usuario y es independiente de createdAt, que es de auditoría
+  date            DateTime        @db.DateTime(3)
+  description     String?         @db.VarChar(255)
+  status          OperationStatus @default(confirmed)
+  origin          OperationOrigin @default(manual)
+  recurringRuleId Int?
+  /// Fecha prevista de la ocurrencia recurrente
+  scheduledDate   DateTime?       @db.Date
+
+  createdAt DateTime  @default(now()) @db.DateTime(3)
+  updatedAt DateTime  @updatedAt @db.DateTime(3)
+  deletedAt DateTime? @db.DateTime(3)
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      Category?      @relation(fields: [categoryId], references: [id])
+  recurringRule RecurringRule? @relation(fields: [recurringRuleId], references: [id])
+  entries       Entry[]
+
+  @@unique([recurringRuleId, scheduledDate])
+  @@index([userId, date])
+  @@index([userId, categoryId, date])
+  @@index([userId, status])
+  @@map("operations")
+}
+
+model Entry {
+  id          Int     @id @default(autoincrement())
+  operationId Int
+  accountId   Int
+  /// Firmado: negativo si sale de la cuenta
+  amount      Decimal @db.Decimal(14, 2)
+
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  account   Account   @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([operationId])
+  @@map("entries")
+}
+
+model RecurringRule {
+  id              Int                @id @default(autoincrement())
+  userId          Int
+  name            String             @db.VarChar(100)
+  kind            RecurringKind
+  amount          Decimal            @db.Decimal(14, 2)
+  categoryId      Int?
+  sourceAccountId Int?
+  fromAccountId   Int?
+  toAccountId     Int?
+  frequency       RecurringFrequency
+  dayOfMonth      Int?
+  dayOfWeek       Int?
+  startDate       DateTime           @db.Date
+  endDate         DateTime?          @db.Date
+  mode            RecurringMode
+  nextRunAt       DateTime?          @db.Date
+  createdAt       DateTime           @default(now()) @db.DateTime(3)
+  updatedAt       DateTime           @updatedAt @db.DateTime(3)
+  deletedAt       DateTime?          @db.DateTime(3)
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      Category?   @relation(fields: [categoryId], references: [id])
+  sourceAccount Account?    @relation("RecurringSourceAccount", fields: [sourceAccountId], references: [id])
+  fromAccount   Account?    @relation("RecurringFromAccount", fields: [fromAccountId], references: [id])
+  toAccount     Account?    @relation("RecurringToAccount", fields: [toAccountId], references: [id])
+  operations    Operation[]
+
+  @@index([userId, nextRunAt])
+  @@map("recurring_rules")
+}
+
+model Device {
+  id            Int            @id @default(autoincrement())
+  userId        Int
+  expoPushToken String         @unique @db.VarChar(255)
+  platform      DevicePlatform
+  lastSeenAt    DateTime       @default(now()) @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("devices")
+}
+
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  /// Nunca el token en claro
+  tokenHash String    @db.VarChar(255)
+  deviceId  Int?
+  expiresAt DateTime  @db.DateTime(3)
+  revokedAt DateTime? @db.DateTime(3)
+  createdAt DateTime  @default(now()) @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+// Tablas del modelo anterior. Se conservan un mes tras la migración para poder
+// reconstruir cualquier cosa, y se borran con una migración propia
+model LegacyUsuario {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @db.VarChar(100)
+  email     String   @unique(map: "email") @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  createdAt DateTime @db.DateTime(0)
+  estado    String   @db.VarChar(10)
+
+  @@map("usuarios_legacy")
+}
+
+model LegacyCuenta {
+  id          Int      @id @default(autoincrement())
   usuarioId   Int
-  nombre      String         @db.VarChar(100)
-  descripcion String?        @db.VarChar(255)
-  tipo        cuentas_tipo   @default(deuda)
-  createdAt   DateTime       @db.DateTime(0)
-  estado      cuentas_estado @default(activo)
-  usuarios    usuarios       @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "cuentas_ibfk_1")
-  movimientos movimientos[]
+  nombre      String   @db.VarChar(100)
+  descripcion String?  @db.VarChar(255)
+  tipo        String   @db.VarChar(10)
+  createdAt   DateTime @db.DateTime(0)
+  estado      String   @db.VarChar(10)
 
-  @@index([createdAt], map: "idx_cuentas_fecha")
-  @@index([nombre(length: 20)], map: "idx_cuentas_nombre")
-  @@index([tipo], map: "idx_cuentas_tipo")
-  @@index([usuarioId, estado], map: "idx_cuentas_usuario_estado")
+  @@map("cuentas_legacy")
 }
 
-model movimientos {
-  id          Int                @id @default(autoincrement())
+model LegacyMovimiento {
+  id          Int      @id @default(autoincrement())
   cuentaId    Int
-  tipo        movimientos_tipo   @default(ingreso)
+  tipo        String   @db.VarChar(10)
   monto       Int
-  descripcion String?            @db.VarChar(255)
-  createdAt   DateTime           @db.DateTime(0)
-  estado      movimientos_estado @default(activo)
-  cuentas     cuentas            @relation(fields: [cuentaId], references: [id], onDelete: Cascade, map: "movimientos_ibfk_1")
+  descripcion String?  @db.VarChar(255)
+  createdAt   DateTime @db.DateTime(0)
+  estado      String   @db.VarChar(10)
 
-  @@index([cuentaId, createdAt, tipo, estado], map: "idx_movimientos_analytics")
-  @@index([cuentaId, estado], map: "idx_movimientos_cuenta_estado")
-  @@index([createdAt], map: "idx_movimientos_fecha")
-  @@index([cuentaId, createdAt, estado], map: "idx_movimientos_fecha_rango")
-  @@index([tipo], map: "idx_movimientos_tipo")
-}
-
-model usuarios {
-  id        Int             @id @default(autoincrement())
-  nombre    String          @db.VarChar(100)
-  email     String          @unique(map: "email") @db.VarChar(255)
-  password  String          @db.VarChar(255)
-  createdAt DateTime        @db.DateTime(0)
-  estado    usuarios_estado @default(activo)
-  cuentas   cuentas[]
-}
-
-enum movimientos_tipo {
-  ingreso
-  egreso
-}
-
-enum cuentas_tipo {
-  normal
-  deuda
-  fuente
-}
-
-enum usuarios_estado {
-  activo
-  inactivo
-}
-
-enum cuentas_estado {
-  activo
-  inactivo
-}
-
-enum movimientos_estado {
-  activo
-  inactivo
+  @@index([cuentaId])
+  @@map("movimientos_legacy")
 }
