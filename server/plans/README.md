@@ -9,12 +9,13 @@ Detalle de ejecución de las fases definidas en `docs/BACKEND.md` §12. Aquí no
 | 0 | [FASE-0.md](FASE-0.md) | Andamio: configuración, fechas, errores y logging | cerrada |
 | 1 | [FASE-1.md](FASE-1.md) | Prisma sobre el esquema actual, sin cambiar el contrato | cerrada. Deriva contra producción verificada: ninguna |
 | 2 | [FASE-2.md](FASE-2.md) | Blindaje: validación, rate limiting, registro cerrado | cerrada |
-| 3 | [FASE-3.md](FASE-3.md) | Esquema nuevo y migración del histórico | ensayada y verificada sobre una copia de producción; falta aplicarla |
+| 3 | [FASE-3.md](FASE-3.md) | Esquema nuevo y migración del histórico | cerrada. Aplicada en local sobre los datos reales |
 | 4 | [FASE-4.md](FASE-4.md) | API nueva: operaciones, conciliación, categorías | siguiente |
 | 5 | [FASE-5.md](FASE-5.md) | Operación: recurrentes, push, sync | pendiente |
 
 ## Reglas comunes
 
+- **El despliegue reemplaza producción, no la migra.** Se desarrolla en local sobre una copia de los datos reales y al final sube el conjunto: código y base ya migrada. El día del despliegue se repite la migración sobre un volcado fresco.
 - **No se empieza una fase sin cerrar la anterior.** Cerrar significa que todos los puntos de la sección Aceptación pasan, no que el código esté escrito.
 - **Cada fase deja la aplicación funcionando.** Un commit intermedio puede estar incompleto; el último de la fase no.
 - **Toda desviación respecto a `docs/BACKEND.md` se anota** en la sección Desviaciones del documento de la fase, con el motivo. Si la desviación es permanente, se lleva también al documento de origen.

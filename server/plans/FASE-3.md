@@ -9,7 +9,7 @@ El cambio estructural: pasar del esquema de tres tablas en español al modelo de
 ## Precondiciones
 
 - Fase 2 cerrada.
-- Backup de producción **del día**, restaurado y verificado en local. No vale el de la Fase 0.
+- Un volcado de producción restaurado en local. No hace falta que sea del día: la migración se repite sobre un volcado fresco el día del despliegue.
 - La consulta de saldos por cuenta ejecutada y su salida guardada. Es la referencia contra la que se verifica al terminar.
 - El ensayo completo hecho al menos una vez sobre la copia local, de principio a fin, con la verificación de saldos en verde.
 
@@ -99,7 +99,7 @@ Orden:
    - `origin` = `legacy`, `status` = `confirmed`
    - `categoryId` = `NULL`
    - `deletedAt` según el paso 4
-5. **Asientos**: uno por operación, con `accountId` = `cuentaId` y `amount` = `+monto` para ingreso, `−monto` para egreso.
+5. **Asientos**: uno por operación, con `accountId` = `cuentaId` y `amount` = `+monto` para ingreso, `−monto` para egreso. **En las cuentas `deuda` el signo va invertido**, por lo explicado en `docs/BACKEND.md` §11.1.
 
 Las operaciones `legacy` tienen **un solo asiento** y por eso no cumplen el invariante de `docs/BACKEND.md` §6.2. Es deliberado: la validación se aplica solo al escribir, nunca al leer.
 
@@ -107,17 +107,25 @@ Las operaciones `legacy` tienen **un solo asiento** y por eso no cumplen el inva
 
 Criterio de aceptación duro. Si una sola cuenta difiere en un peso, se revierte todo:
 
+Ojo con el `LEFT JOIN`: la condición sobre `operations` va en el `WHERE`, no en el `ON`. El porqué está más abajo, en su propia sección.
+
 ```sql
-SELECT b.cuentaId,
-       b.saldo_antes,
-       COALESCE(SUM(e.amount), 0) AS saldo_despues,
-       b.saldo_antes - COALESCE(SUM(e.amount), 0) AS diferencia
+SELECT b.cuentaId, b.tipo, b.saldo_antes, s.saldo AS saldo_despues,
+       CASE WHEN b.tipo = 'deuda' THEN -b.saldo_antes ELSE b.saldo_antes END AS esperado
 FROM _balance_check b
-LEFT JOIN entries e ON e.accountId = b.cuentaId
-LEFT JOIN operations o ON o.id = e.operationId AND o.deletedAt IS NULL AND o.status = 'confirmed'
-GROUP BY b.cuentaId
-HAVING diferencia <> 0;
+JOIN (
+  SELECT a.id,
+         COALESCE((
+           SELECT SUM(e.amount) FROM entries e
+           JOIN operations o ON o.id = e.operationId
+           WHERE e.accountId = a.id AND o.deletedAt IS NULL AND o.status = 'confirmed'
+         ), 0) AS saldo
+  FROM accounts a
+) s ON s.id = b.cuentaId
+WHERE s.saldo <> CASE WHEN b.tipo = 'deuda' THEN -b.saldo_antes ELSE b.saldo_antes END;
 ```
+
+El `CASE` sobre `tipo` es la inversión de signo de las cuentas por cobrar (§11.1): en ellas el saldo esperado es el opuesto del que había.
 
 Debe devolver **cero filas**. `_balance_check` se borra al terminar la verificación.
 
@@ -152,19 +160,20 @@ Renombrar `movimientos` a `movimientos_legacy` en vez de borrarla. Es la única 
 | Se pierden datos en el renombrado de tablas | Revisar el SQL a mano antes de aplicar; ensayo completo en local |
 | `deuda` traducido a `liability` en vez de `receivable` | Revisión manual de las cuentas antes de migrar; invierte el dashboard entero |
 | Un saldo cambia y no se detecta | La verificación del paso 6 es bloqueante, no informativa |
-| La migración falla a mitad | Todo el script de datos va en una transacción; el DDL de MySQL no es transaccional, así que la reversión real es restaurar el backup |
-| El cliente web deja de funcionar | Es esperado: sus endpoints siguen vivos pero contra el esquema viejo. La compatibilidad se resuelve en la Fase 4, o se acepta la ventana de indisponibilidad |
+| La migración falla a mitad | El DDL de MySQL no es transaccional, así que la reversión es restaurar el volcado y volver a empezar |
+| El cliente web deja de funcionar en local | Es esperado y no importa: la carpeta client está para archivarse |
 
-**Reversión: restaurar el backup del día.** MySQL no revierte DDL, así que no hay vuelta atrás incremental. Por eso el backup fresco es precondición y no recomendación.
+**Reversión: tirar la base y restaurar el volcado otra vez.** MySQL no revierte DDL, así que no hay vuelta atrás incremental. Como todo esto corre en local sobre una copia, revertir cuesta un minuto.
 
-### Ventana de indisponibilidad
+### La migración nunca se aplica sobre producción
 
-Los endpoints actuales (`/cuentas`, `/movimientos`) consultan tablas y columnas que esta fase renombra, así que dejan de funcionar en el momento en que se aplica la migración y hasta que la Fase 4 los reemplace o se adapten. Hay que decidir **antes de empezar** cuál de las dos:
+El despliegue no es una migración en caliente. Se trabaja en local sobre una copia de los datos reales, se construye todo encima, y al final **sube el conjunto: código y base de datos ya migrada**. Producción se reemplaza, no se transforma.
 
-- Aceptar la ventana: la app queda caída entre la Fase 3 y la Fase 4. Es lo más simple para una app de uso familiar.
-- Adaptar los controladores viejos al esquema nuevo como paso 9 de esta fase, para que sigan respondiendo igual. Cuesta trabajo que se tira a la basura en la Fase 4.
+Eso elimina la ventana de indisponibilidad. Los endpoints viejos dejan de funcionar en local al aplicar la migración, que es justo lo que se espera mientras la Fase 4 los reemplaza, y en producción no cambia nada hasta el día del despliegue.
 
-Recomendación: **aceptar la ventana**, avisando antes, y encadenar las fases 3 y 4 lo más seguido posible.
+Queda un solo riesgo que vigilar: **si se sigue usando la app en producción mientras se desarrolla, los datos divergen.** La copia local es una foto del 14 de agosto de 2026, y cada movimiento registrado en producción después de esa fecha se perdería al subir.
+
+No hace falta congelar el uso. La migración es un script determinista y repetible, ya verificado: el día del despliegue se toma un volcado fresco, se le aplica la **misma** migración sin tocar una línea, y se sube el resultado. La copia local sirve para desarrollar; la que se despliega se genera al final.
 
 ---
 
@@ -227,4 +236,4 @@ Resultado del ensayo:
 
 Deriva contra producción: `prisma migrate diff` devolvió una migración vacía, así que el `schema.prisma` de la Fase 1 reflejaba producción exactamente.
 
-**Pendiente:** aplicarla a producción. Requiere un volcado del día, no el usado en el ensayo, y abre la ventana de indisponibilidad descrita arriba hasta que la Fase 4 reemplace los endpoints.
+Aplicada además a la base de desarrollo, que ahora contiene los datos reales ya migrados: 27 cuentas, 1.646 operaciones y `discrepancy = 0`. Sobre ella se construye la Fase 4.
