@@ -1,39 +1,52 @@
 import { Op } from "sequelize";
 import loadModels from "../database/models/index.js";
+import { notFound, validationError } from "../lib/errors.js";
+import { endOfDay, startOfDay } from "../lib/date.js";
 
 const { Movimientos, Cuentas, sequelize } = await loadModels();
 
-// 📅 FUNCIÓN SIMPLIFICADA: Buscar movimientos por rango de fechas con paginación
-const getMovimientosByDateRange = async (req, res) => {
+const getMovimientosByDateRange = async (req, res, next) => {
 	try {
 		const { fechaInicio, fechaFin, cuentaId, tipo, page = 1 } = req.query;
-		const limit = 10; // Máximo 10 movimientos por página
+		const limit = 10;
 		const offset = (parseInt(page) - 1) * limit;
 
-		// Validar parámetros requeridos
 		if (!fechaInicio || !fechaFin) {
-			return res.status(400).json({
-				error: "Parámetros requeridos: fechaInicio y fechaFin",
-				ejemplo: "?fechaInicio=2025-01-01&fechaFin=2025-12-31&page=1",
-			});
+			return next(
+				validationError("Parámetros requeridos: fechaInicio y fechaFin", [
+					{
+						path: "fechaInicio",
+						message: "Formato esperado: 2025-01-01",
+					},
+					{ path: "fechaFin", message: "Formato esperado: 2025-12-31" },
+				]),
+			);
 		}
 
-		// Construir condiciones de búsqueda
+		// El rango se interpreta en la zona de la aplicación y con el día final
+		// completo: new Date("2025-12-31") es medianoche UTC y dejaría fuera
+		// todos los movimientos de ese día
+		const desde = startOfDay(fechaInicio);
+		const hasta = endOfDay(fechaFin);
+
+		if (!desde || !hasta) {
+			return next(
+				validationError("Las fechas deben tener formato ISO válido"),
+			);
+		}
+
 		const whereConditions = {
 			createdAt: {
-				[Op.between]: [new Date(fechaInicio), new Date(fechaFin)],
+				[Op.between]: [desde, hasta],
 			},
 			estado: "activo",
 		};
 
-		// Filtro opcional por tipo de movimiento
 		if (tipo && ["ingreso", "egreso"].includes(tipo)) {
 			whereConditions.tipo = tipo;
 		}
 
-		// 🔑 SOLUCIÓN: Si cuentaId está presente, agregar a whereConditions directamente
 		if (cuentaId) {
-			// Verificar que la cuenta pertenezca al usuario
 			const cuentaExiste = await Cuentas.findOne({
 				where: {
 					id: cuentaId,
@@ -43,16 +56,14 @@ const getMovimientosByDateRange = async (req, res) => {
 			});
 
 			if (!cuentaExiste) {
-				return res.status(404).json({
-					error: "Cuenta no encontrada o no pertenece al usuario",
-				});
+				return next(
+					notFound("Cuenta no encontrada o no pertenece al usuario"),
+				);
 			}
 
-			// Agregar filtro de cuenta directamente a movimientos
 			whereConditions.cuentaId = cuentaId;
 		}
 
-		// 🚀 Query optimizada - CAMBIO: usar whereConditions unificadas
 		let query = {
 			where: whereConditions,
 			attributes: [
@@ -68,7 +79,8 @@ const getMovimientosByDateRange = async (req, res) => {
 			offset,
 		};
 
-		// Si NO hay cuentaId específica, incluir información de cuentas del usuario
+		// Sin cuenta específica hay que unir para no devolver movimientos de
+		// otro usuario
 		if (!cuentaId) {
 			query.include = [
 				{
@@ -87,27 +99,21 @@ const getMovimientosByDateRange = async (req, res) => {
 			query,
 		);
 
-		// 📊 Cálculo de balance si es una cuenta específica
 		let balance = null;
 		let cuenta = null;
 
 		if (cuentaId) {
-			// Obtener información de la cuenta
 			cuenta = await Cuentas.findOne({
 				where: { id: cuentaId, usuarioId: req.userId },
 				attributes: ["id", "nombre", "tipo"],
 			});
 
-			// Calcular balance optimizado para esta cuenta
 			const balanceQuery = await Movimientos.findAll({
 				where: {
 					cuentaId,
 					estado: "activo",
 					createdAt: {
-						[Op.between]: [
-							new Date(fechaInicio),
-							new Date(fechaFin),
-						],
+						[Op.between]: [desde, hasta],
 					},
 				},
 				attributes: [
@@ -115,7 +121,7 @@ const getMovimientosByDateRange = async (req, res) => {
 						sequelize.fn(
 							"SUM",
 							sequelize.literal(
-								'CASE WHEN tipo = "ingreso" THEN monto ELSE -monto END',
+								"CASE WHEN tipo = 'ingreso' THEN monto ELSE -monto END",
 							),
 						),
 						"balance",
@@ -127,7 +133,6 @@ const getMovimientosByDateRange = async (req, res) => {
 			balance = parseInt(balanceQuery[0]?.balance || 0);
 		}
 
-		// Información de paginación
 		const totalPages = Math.ceil(count / limit);
 		const currentPage = parseInt(page);
 
@@ -149,7 +154,6 @@ const getMovimientosByDateRange = async (req, res) => {
 			},
 		};
 
-		// Agregar cuenta y balance si es filtro por cuenta específica
 		if (cuentaId && cuenta) {
 			response.cuenta = {
 				...cuenta.toJSON(),
@@ -159,18 +163,14 @@ const getMovimientosByDateRange = async (req, res) => {
 
 		res.status(200).json(response);
 	} catch (error) {
-		console.error("Error en getMovimientosByDateRange:", error);
-		res.status(500).json({
-			error: "Error al buscar movimientos por rango de fechas",
-			detalle: error.message,
-		});
+		next(error);
 	}
 };
 
-const getMovimientos = async (req, res) => {
+const getMovimientos = async (req, res, next) => {
 	const { cuentaId } = req.params;
 	const { page = 1 } = req.query;
-	const limit = 10; // 10 movimientos por página
+	const limit = 10;
 	const offset = (parseInt(page) - 1) * limit;
 
 	try {
@@ -178,10 +178,9 @@ const getMovimientos = async (req, res) => {
 			where: { id: cuentaId, usuarioId: req.userId },
 		});
 		if (!cuenta) {
-			return res.status(404).json({ error: "Cuenta no encontrada" });
+			return next(notFound("Cuenta no encontrada"));
 		}
 
-		// � Cálculo optimizado del balance usando índices
 		const balanceQuery = await Movimientos.findAll({
 			where: { cuentaId, estado: "activo" },
 			attributes: [
@@ -189,7 +188,7 @@ const getMovimientos = async (req, res) => {
 					sequelize.fn(
 						"SUM",
 						sequelize.literal(
-							'CASE WHEN tipo = "ingreso" THEN monto ELSE -monto END',
+							"CASE WHEN tipo = 'ingreso' THEN monto ELSE -monto END",
 						),
 					),
 					"balance",
@@ -200,7 +199,6 @@ const getMovimientos = async (req, res) => {
 
 		const balance = parseInt(balanceQuery[0]?.balance || 0);
 
-		// �📄 Buscar con paginación
 		const { count, rows: movimientos } = await Movimientos.findAndCountAll({
 			where: { cuentaId, estado: "activo" },
 			order: [["createdAt", "DESC"]],
@@ -208,14 +206,13 @@ const getMovimientos = async (req, res) => {
 			offset,
 		});
 
-		// Información de paginación
 		const totalPages = Math.ceil(count / limit);
 		const currentPage = parseInt(page);
 
 		res.status(200).json({
 			cuenta: {
 				...cuenta.toJSON(),
-				balance, // 🏷️ Balance calculado en backend
+				balance, // Calculado en el servidor, nunca almacenado
 			},
 			movimientos,
 			paginacion: {
@@ -228,14 +225,11 @@ const getMovimientos = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		res.status(500).json({
-			error: "Error al obtener los movimientos de la cuenta",
-			descripcion: error,
-		});
+		next(error);
 	}
 };
 
-const getMovimiento = async (req, res) => {
+const getMovimiento = async (req, res, next) => {
 	const { id } = req.params;
 	try {
 		const movimiento = await Movimientos.findOne({
@@ -250,29 +244,25 @@ const getMovimiento = async (req, res) => {
 		});
 
 		if (!movimiento) {
-			return res.status(404).json({ error: "Movimiento no encontrado" });
+			return next(notFound("Movimiento no encontrado"));
 		}
 
 		res.status(200).json({ movimiento });
 	} catch (error) {
-		res.status(500).json({
-			error: "Error al obtener los movimientos de la cuenta",
-			descripcion: error,
-		});
+		next(error);
 	}
 };
 
-const createMovimiento = async (req, res) => {
+const createMovimiento = async (req, res, next) => {
 	const { cuentaId } = req.params;
 	const { tipo, monto, descripcion, createdAt } = req.body;
 	try {
-		// Verificar que la cuenta pertenezca al usuario
 		const cuenta = await Cuentas.findOne({
 			where: { id: cuentaId, usuarioId: req.userId },
 		});
 
 		if (!cuenta) {
-			return res.status(404).json({ error: "Cuenta no encontrada" });
+			return next(notFound("Cuenta no encontrada"));
 		}
 
 		const nuevoMovimiento = await Movimientos.create({
@@ -284,14 +274,11 @@ const createMovimiento = async (req, res) => {
 		});
 		res.status(201).json(nuevoMovimiento);
 	} catch (error) {
-		res.status(500).json({
-			error: "Error al crear el movimiento",
-			descripcion: error,
-		});
+		next(error);
 	}
 };
 
-const updateMovimiento = async (req, res) => {
+const updateMovimiento = async (req, res, next) => {
 	const { id } = req.params;
 	const { tipo, monto, descripcion, createdAt } = req.body;
 	try {
@@ -306,19 +293,16 @@ const updateMovimiento = async (req, res) => {
 			],
 		});
 		if (!movimiento) {
-			return res.status(404).json({ error: "Movimiento no encontrado" });
+			return next(notFound("Movimiento no encontrado"));
 		}
 		await movimiento.update({ tipo, monto, descripcion, createdAt });
 		res.status(200).json(movimiento);
 	} catch (error) {
-		res.status(500).json({
-			error: "Error al actualizar el movimiento",
-			descripcion: error,
-		});
+		next(error);
 	}
 };
 
-const deleteMovimiento = async (req, res) => {
+const deleteMovimiento = async (req, res, next) => {
 	const { id } = req.params;
 	try {
 		const movimiento = await Movimientos.findOne({
@@ -332,22 +316,19 @@ const deleteMovimiento = async (req, res) => {
 			],
 		});
 		if (!movimiento) {
-			return res.status(404).json({ error: "Movimiento no encontrado" });
+			return next(notFound("Movimiento no encontrado"));
 		}
 		await movimiento.update({ estado: "inactivo" });
 		res.status(200).json(movimiento);
 	} catch (error) {
-		res.status(500).json({
-			error: "Error al eliminar el movimiento",
-			descripcion: error,
-		});
+		next(error);
 	}
 };
 
 export default {
 	getMovimientos,
 	getMovimiento,
-	getMovimientosByDateRange, // 📅 NUEVA función para rangos de fechas
+	getMovimientosByDateRange,
 	createMovimiento,
 	updateMovimiento,
 	deleteMovimiento,

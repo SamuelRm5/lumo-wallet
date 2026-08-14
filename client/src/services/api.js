@@ -10,6 +10,14 @@ const instance = axios.create({
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
+    // El servidor devuelve { error: { code, message, details } } y las
+    // llamadas de abajo esperan una cadena en data.error
+    const payload = error.response?.data?.error;
+    if (payload && typeof payload === "object") {
+      error.response.data.error = payload.message;
+      error.response.data.errorDetail = payload;
+    }
+
     if (error.response?.status === 401) {
       // Token expirado o inválido
       localStorage.removeItem("token");

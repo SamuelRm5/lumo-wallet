@@ -1,41 +1,42 @@
 import loadModels from "../database/models/index.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import {
+	conflict,
+	notFound,
+	unauthenticated,
+	validationError,
+} from "../lib/errors.js";
+import env from "../config/env.js";
 
 const { Usuarios } = await loadModels();
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
 	const { nombre, email, password } = req.body;
 
 	try {
-		// Validar que no exista el usuario
 		const existingUser = await Usuarios.findOne({
 			where: { email, estado: "activo" },
 		});
 
 		if (existingUser) {
-			return res.status(400).json({
-				error: "Ya existe un usuario con este email",
-			});
+			return next(conflict("Ya existe un usuario con este email"));
 		}
 
-		// Hash de la contraseña
 		const hashedPassword = await bcrypt.hash(password, 10);
 
-		// Crear usuario
 		const usuario = await Usuarios.create({
 			nombre,
 			email,
 			password: hashedPassword,
 		});
 
-		// Generar JWT
 		const token = jwt.sign(
 			{
 				userId: usuario.id,
 				email: usuario.email,
 			},
-			process.env.JWT_SECRET,
+			env.JWT_SECRET,
 			{ expiresIn: "365d" }, // 1 año para uso familiar
 		);
 		res.status(201).json({
@@ -47,47 +48,37 @@ const register = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.error("Error en register:", error);
-		res.status(500).json({
-			error: "Error interno del servidor",
-		});
+		next(error);
 	}
 };
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
 	const { email, password } = req.body;
 
 	try {
-		// Buscar usuario activo
 		const usuario = await Usuarios.findOne({
 			where: { email, estado: "activo" },
 		});
 
 		if (!usuario) {
-			return res.status(401).json({
-				error: "Credenciales inválidas",
-			});
+			return next(unauthenticated("Credenciales inválidas"));
 		}
 
-		// Verificar contraseña
 		const isValidPassword = await bcrypt.compare(
 			password,
 			usuario.password,
 		);
 
 		if (!isValidPassword) {
-			return res.status(401).json({
-				error: "Credenciales inválidas",
-			});
+			return next(unauthenticated("Credenciales inválidas"));
 		}
 
-		// Generar JWT
 		const token = jwt.sign(
 			{
 				userId: usuario.id,
 				email: usuario.email,
 			},
-			process.env.JWT_SECRET,
+			env.JWT_SECRET,
 			{ expiresIn: "30d" }, // 30 días para uso familiar
 		);
 
@@ -100,26 +91,19 @@ const login = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.error("Error en login:", error);
-		res.status(500).json({
-			error: "Error interno del servidor",
-		});
+		next(error);
 	}
 };
 
-const validateToken = async (req, res) => {
+const validateToken = async (req, res, next) => {
 	try {
 		// El middleware ya validó el token y estableció req.userId
 		const usuario = await Usuarios.findByPk(req.userId, {
-			attributes: ["id", "nombre", "email", "estado"], // Excluir password
+			attributes: ["id", "nombre", "email", "estado"],
 		});
 
-		console.log("Usuario validado:", usuario, req.userId);
-
 		if (!usuario || usuario.estado !== "activo") {
-			return res.status(401).json({
-				error: "Usuario no válido",
-			});
+			return next(unauthenticated("Usuario no válido"));
 		}
 
 		res.json({
@@ -131,60 +115,46 @@ const validateToken = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.error("Error en validateToken:", error);
-		res.status(401).json({
-			error: "Token inválido",
-		});
+		next(error);
 	}
 };
 
-const getProfile = async (req, res) => {
+const getProfile = async (req, res, next) => {
 	try {
 		const usuario = await Usuarios.findByPk(req.userId, {
 			attributes: ["id", "nombre", "email", "createdAt"],
 		});
 
 		if (!usuario) {
-			return res.status(404).json({
-				error: "Usuario no encontrado",
-			});
+			return next(notFound("Usuario no encontrado"));
 		}
 
 		res.json(usuario);
 	} catch (error) {
-		console.error("Error en getProfile:", error);
-		res.status(500).json({
-			error: "Error interno del servidor",
-		});
+		next(error);
 	}
 };
 
-const updateProfile = async (req, res) => {
+const updateProfile = async (req, res, next) => {
 	const { nombre, email } = req.body;
 
 	try {
 		const usuario = await Usuarios.findByPk(req.userId);
 
 		if (!usuario) {
-			return res.status(404).json({
-				error: "Usuario no encontrado",
-			});
+			return next(notFound("Usuario no encontrado"));
 		}
 
-		// Verificar si el email ya existe (si cambió)
 		if (email && email !== usuario.email) {
 			const existingUser = await Usuarios.findOne({
 				where: { email, estado: "activo" },
 			});
 
 			if (existingUser) {
-				return res.status(400).json({
-					error: "Ya existe un usuario con este email",
-				});
+				return next(conflict("Ya existe un usuario con este email"));
 			}
 		}
 
-		// Actualizar datos
 		usuario.nombre = nombre || usuario.nombre;
 		usuario.email = email || usuario.email;
 
@@ -196,79 +166,66 @@ const updateProfile = async (req, res) => {
 			email: usuario.email,
 		});
 	} catch (error) {
-		console.error("Error en updateProfile:", error);
-		res.status(500).json({
-			error: "Error interno del servidor",
-		});
+		next(error);
 	}
 };
 
-const changePassword = async (req, res) => {
+const changePassword = async (req, res, next) => {
 	const { currentPassword, newPassword } = req.body;
 
 	try {
-		// Validar campos requeridos
 		if (!currentPassword || !newPassword) {
-			return res.status(400).json({
-				error: "Contraseña actual y nueva contraseña son requeridas",
-			});
+			return next(
+				validationError(
+					"Contraseña actual y nueva contraseña son requeridas",
+				),
+			);
 		}
 
-		// Validar longitud mínima
 		if (newPassword.length < 6) {
-			return res.status(400).json({
-				error: "La nueva contraseña debe tener al menos 6 caracteres",
-			});
+			return next(
+				validationError(
+					"La nueva contraseña debe tener al menos 6 caracteres",
+				),
+			);
 		}
 
-		// Buscar usuario
 		const usuario = await Usuarios.findByPk(req.userId);
 
 		if (!usuario) {
-			return res.status(404).json({
-				error: "Usuario no encontrado",
-			});
+			return next(notFound("Usuario no encontrado"));
 		}
 
-		// Verificar contraseña actual
 		const isValidCurrentPassword = await bcrypt.compare(
 			currentPassword,
 			usuario.password,
 		);
 
 		if (!isValidCurrentPassword) {
-			return res.status(401).json({
-				error: "Contraseña actual incorrecta",
-			});
+			return next(unauthenticated("Contraseña actual incorrecta"));
 		}
 
-		// Verificar que la nueva contraseña sea diferente
 		const isSamePassword = await bcrypt.compare(
 			newPassword,
 			usuario.password,
 		);
 
 		if (isSamePassword) {
-			return res.status(400).json({
-				error: "La nueva contraseña debe ser diferente a la actual",
-			});
+			return next(
+				validationError(
+					"La nueva contraseña debe ser diferente a la actual",
+				),
+			);
 		}
 
-		// Hash de la nueva contraseña
-		const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-
-		// Actualizar contraseña
-		usuario.password = hashedNewPassword;
+		usuario.password = await bcrypt.hash(newPassword, 10);
 		await usuario.save();
 
 		res.json({
 			message: "Contraseña actualizada exitosamente",
 		});
 	} catch (error) {
-		console.error("Error en changePassword:", error);
-		res.status(500).json({
-			error: "Error interno del servidor",
-		});
+		next(error);
 	}
 };
 

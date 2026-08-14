@@ -1,55 +1,31 @@
+import env from "./config/env.js";
+import { logger } from "./middleware/requestLogger.js";
 import loadModels from "./database/models/index.js";
-import {
-	v1AuthRoutes,
-	v1CuentasRoutes,
-	v1MovimientosRoutes,
-} from "./v1/routes/index.js";
-import express, { json } from "express";
-import helmet from "helmet";
-import dotenv from "dotenv";
-import cors from "cors";
+import createApp from "./app.js";
 
 const { sequelize } = await loadModels();
 
-dotenv.config();
+// sync() crea las tablas que falten pero no aplica cambios sobre las que ya
+// existen
+try {
+	await sequelize.sync();
+	logger.info("Esquema de base de datos sincronizado");
+} catch (error) {
+	logger.fatal({ err: error }, "No se pudo conectar a la base de datos");
+	process.exit(1);
+}
 
-const app = express();
+const server = createApp().listen(env.PORT, () => {
+	logger.info(`Servidor escuchando en el puerto ${env.PORT}`);
+});
 
-app.use(helmet());
-
-const corsOptions = {
-	origin: process.env.CORS_ORIGIN, // Define el origen permitido
-	// origin: "*",
-	optionsSuccessStatus: 200,
+const shutdown = signal => {
+	logger.info(`${signal} recibido, cerrando`);
+	server.close(async () => {
+		await sequelize.close();
+		process.exit(0);
+	});
 };
 
-app.use(cors(corsOptions));
-
-app.use(json());
-
-// Rutas de la aplicación
-app.use("/api/v1/auth", v1AuthRoutes);
-app.use("/api/v1/cuentas", v1CuentasRoutes);
-app.use("/api/v1/movimientos", v1MovimientosRoutes);
-app.get("/api/health", (req, res) => {
-	res.status(200).json({ status: "ok" });
-});
-
-(async () => {
-	try {
-		/**
-		 * sync({ force: true }) elimina todas las tablas y las vuelve a crear
-		 * sync({ alter: true }) detecta las diferencias entre el modelo y la tabla y las aplica
-		 * sync() no hace nada si la tabla ya existe
-		 */
-		await sequelize.sync();
-		console.log("Database synchronized");
-	} catch (error) {
-		console.error("Unable to connect to the database:", error);
-	}
-})();
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-	console.log(`Server running on port ${PORT}`);
-});
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

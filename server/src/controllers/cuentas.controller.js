@@ -1,12 +1,12 @@
 import loadModels from "../database/models/index.js";
+import { notFound } from "../lib/errors.js";
 
 const { Cuentas, Movimientos, sequelize } = await loadModels();
-const { fn, col, literal } = sequelize;
+const { fn, literal } = sequelize;
 
-const getAllCuentas = async (req, res) => {
+const getAllCuentas = async (req, res, next) => {
 	try {
-		// 🚀 IMPLEMENTACIÓN OPTIMIZADA CON JOIN + GROUP BY
-		// Evita N+1 queries y mejora rendimiento 10-25x
+		// JOIN + GROUP BY en lugar de una consulta de saldo por cuenta
 		const cuentas = await Cuentas.findAll({
 			where: {
 				estado: "activo",
@@ -18,7 +18,7 @@ const getAllCuentas = async (req, res) => {
 					as: "movimientos",
 					where: { estado: "activo" },
 					required: false, // LEFT JOIN - incluye cuentas sin movimientos
-					attributes: [], // No traer datos de movimientos, solo para cálculo
+					attributes: [], // No trae datos, solo participa en el cálculo
 				},
 			],
 			attributes: {
@@ -28,10 +28,10 @@ const getAllCuentas = async (req, res) => {
 							"COALESCE",
 							fn(
 								"SUM",
-								literal(`CASE 
-									WHEN movimientos.tipo = 'ingreso' THEN movimientos.monto 
-									WHEN movimientos.tipo = 'egreso' THEN -movimientos.monto 
-									ELSE 0 
+								literal(`CASE
+									WHEN movimientos.tipo = 'ingreso' THEN movimientos.monto
+									WHEN movimientos.tipo = 'egreso' THEN -movimientos.monto
+									ELSE 0
 								END`),
 							),
 							0,
@@ -40,23 +40,19 @@ const getAllCuentas = async (req, res) => {
 					],
 				],
 			},
-			group: ["cuenta.id"], // Agrupar por cuenta para SUM
+			group: ["cuenta.id"],
 			order: [["createdAt", "DESC"]],
 		});
 
 		res.status(200).json(cuentas);
 	} catch (error) {
-		console.error("Error en getAllCuentas:", error);
-		res.status(500).json({
-			error: "Error al obtener las cuentas",
-		});
+		next(error);
 	}
 };
 
-const getCuentaById = async (req, res) => {
+const getCuentaById = async (req, res, next) => {
 	const { id } = req.params;
 	try {
-		// 🚀 OPTIMIZACIÓN: JOIN en lugar de subquery
 		const cuenta = await Cuentas.findOne({
 			where: {
 				id,
@@ -79,10 +75,10 @@ const getCuentaById = async (req, res) => {
 							"COALESCE",
 							fn(
 								"SUM",
-								literal(`CASE 
-									WHEN movimientos.tipo = 'ingreso' THEN movimientos.monto 
-									WHEN movimientos.tipo = 'egreso' THEN -movimientos.monto 
-									ELSE 0 
+								literal(`CASE
+									WHEN movimientos.tipo = 'ingreso' THEN movimientos.monto
+									WHEN movimientos.tipo = 'egreso' THEN -movimientos.monto
+									ELSE 0
 								END`),
 							),
 							0,
@@ -95,19 +91,18 @@ const getCuentaById = async (req, res) => {
 		});
 
 		if (!cuenta) {
-			return res.status(404).json({ message: "Cuenta no encontrada" });
+			return next(notFound("Cuenta no encontrada"));
 		}
 
 		res.status(200).json(cuenta);
 	} catch (error) {
-		res.status(500).json({ error: "Error al obtener la cuenta" });
+		next(error);
 	}
 };
 
-const getCuentasByTipo = async (req, res) => {
+const getCuentasByTipo = async (req, res, next) => {
 	const { tipo } = req.params;
 	try {
-		// 🚀 OPTIMIZACIÓN: JOIN + GROUP BY para mejor rendimiento
 		const cuentas = await Cuentas.findAll({
 			where: {
 				tipo,
@@ -130,10 +125,10 @@ const getCuentasByTipo = async (req, res) => {
 							"COALESCE",
 							fn(
 								"SUM",
-								literal(`CASE 
-									WHEN movimientos.tipo = 'ingreso' THEN movimientos.monto 
-									WHEN movimientos.tipo = 'egreso' THEN -movimientos.monto 
-									ELSE 0 
+								literal(`CASE
+									WHEN movimientos.tipo = 'ingreso' THEN movimientos.monto
+									WHEN movimientos.tipo = 'egreso' THEN -movimientos.monto
+									ELSE 0
 								END`),
 							),
 							0,
@@ -148,13 +143,11 @@ const getCuentasByTipo = async (req, res) => {
 
 		res.status(200).json(cuentas);
 	} catch (error) {
-		res.status(500).json({
-			error: "Error al obtener las cuentas por tipo",
-		});
+		next(error);
 	}
 };
 
-const createCuenta = async (req, res) => {
+const createCuenta = async (req, res, next) => {
 	const { nombre, descripcion, tipo } = req.body;
 	try {
 		const nuevaCuenta = await Cuentas.create({
@@ -166,11 +159,11 @@ const createCuenta = async (req, res) => {
 		});
 		res.status(201).json(nuevaCuenta);
 	} catch (error) {
-		res.status(500).json({ message: "Error al crear la cuenta", error });
+		next(error);
 	}
 };
 
-const updateCuenta = async (req, res) => {
+const updateCuenta = async (req, res, next) => {
 	const { id } = req.params;
 	const { nombre, descripcion, tipo } = req.body;
 	try {
@@ -178,7 +171,7 @@ const updateCuenta = async (req, res) => {
 			where: { id, usuarioId: req.userId },
 		});
 		if (!cuenta) {
-			return res.status(404).json({ message: "Cuenta no encontrada" });
+			return next(notFound("Cuenta no encontrada"));
 		}
 		cuenta.nombre = nombre || cuenta.nombre;
 		cuenta.descripcion = descripcion || cuenta.descripcion;
@@ -186,27 +179,24 @@ const updateCuenta = async (req, res) => {
 		await cuenta.save();
 		res.status(200).json(cuenta);
 	} catch (error) {
-		res.status(500).json({
-			message: "Error al actualizar la cuenta",
-			error,
-		});
+		next(error);
 	}
 };
 
-const deleteCuenta = async (req, res) => {
+const deleteCuenta = async (req, res, next) => {
 	const { id } = req.params;
 	try {
 		const cuenta = await Cuentas.findOne({
 			where: { id, usuarioId: req.userId },
 		});
 		if (!cuenta) {
-			return res.status(404).json({ message: "Cuenta no encontrada" });
+			return next(notFound("Cuenta no encontrada"));
 		}
 		cuenta.estado = "inactivo";
 		await cuenta.save();
 		res.status(200).json({ message: "Cuenta eliminada correctamente" });
 	} catch (error) {
-		res.status(500).json({ message: "Error al eliminar la cuenta", error });
+		next(error);
 	}
 };
 
