@@ -39,6 +39,10 @@ export type ListOperationsParams = {
 	cursor?: string;
 };
 
+export function getOperation(id: number) {
+	return apiRequest<Operation>(`/operations/${id}`);
+}
+
 export function listOperations(params: ListOperationsParams = {}) {
 	const query = new URLSearchParams();
 	for (const [key, value] of Object.entries(params)) {

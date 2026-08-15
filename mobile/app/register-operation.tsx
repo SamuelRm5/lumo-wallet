@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as Crypto from "expo-crypto";
-import { useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { listAccounts, type Account } from "@/api/accounts";
 import { listCategories, type Category } from "@/api/categories";
 import { ApiError } from "@/api/client";
-import { createOperation, type CreateOperationInput, type OperationKind } from "@/api/operations";
+import { createOperation, getOperation, updateOperation, type CreateOperationInput, type OperationKind } from "@/api/operations";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { useTheme } from "@/theme";
+
+function sameDay(a: Date, b: Date) {
+	return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
 
 const KIND_LABEL: Record<OperationKind, string> = {
 	income: "Ingreso",
@@ -27,10 +31,12 @@ const KIND_ORDER: OperationKind[] = ["expense", "income", "transfer", "adjustmen
 export default function RegisterOperationScreen() {
 	const theme = useTheme();
 	const router = useRouter();
+	const { operationId } = useLocalSearchParams<{ operationId?: string }>();
+	const editingId = operationId ? Number(operationId) : null;
 
 	const [kind, setKind] = useState<OperationKind>("expense");
 	const [amount, setAmount] = useState("");
-	const [daysAgo, setDaysAgo] = useState(0);
+	const [date, setDate] = useState(() => new Date().toISOString());
 	const [description, setDescription] = useState("");
 	const [categoryId, setCategoryId] = useState<number | null>(null);
 	const [fromAccountId, setFromAccountId] = useState<number | null>(null);
@@ -41,18 +47,55 @@ export default function RegisterOperationScreen() {
 
 	const [accounts, setAccounts] = useState<Account[] | null>(null);
 	const [categories, setCategories] = useState<Category[] | null>(null);
+	const [loadingOperation, setLoadingOperation] = useState(!!editingId);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	// Un UUID por intento de registro, reutilizado en los reintentos de ese
 	// mismo intento. Al remontar la pantalla (nuevo intento) se genera uno
-	// nuevo (docs/APP_MOVIL.md §3).
+	// nuevo (docs/APP_MOVIL.md §3). No aplica al editar: PUT no es idempotente
+	// por diseño del contrato, solo POST.
 	const idempotencyKey = useRef(Crypto.randomUUID());
 
 	useEffect(() => {
 		listAccounts().then((res) => setAccounts(res.data));
 		listCategories().then((res) => setCategories(res.data));
 	}, []);
+
+	// Precarga el formulario de edición una vez que hay cuentas para poder
+	// mapear cada asiento a su rol (origen/destino/fuente) por el tipo de
+	// cuenta, ya que el contrato no manda esa etiqueta (docs/APP_MOVIL.md §4.4:
+	// "quedarse con el asiento cuya cuenta no es source").
+	const prefilledRef = useRef(false);
+	useEffect(() => {
+		if (!editingId || !accounts || prefilledRef.current) return;
+		prefilledRef.current = true;
+		getOperation(editingId).then((op) => {
+			setKind(op.kind);
+			setAmount(String(op.amount));
+			setDate(op.date);
+			setDescription(op.description ?? "");
+			setCategoryId(op.category?.id ?? null);
+
+			const typeOf = (id: number) => accounts.find((a) => a.id === id)?.type;
+			const sourceEntry = op.entries.find((e) => typeOf(e.accountId) === "source");
+			const nonSourceEntries = op.entries.filter((e) => typeOf(e.accountId) !== "source");
+
+			if (op.kind === "income") {
+				setToAccountId(nonSourceEntries[0]?.accountId ?? null);
+			} else if (op.kind === "expense") {
+				setFromAccountId(nonSourceEntries[0]?.accountId ?? null);
+			} else if (op.kind === "transfer") {
+				setFromAccountId(op.entries.find((e) => e.amount < 0)?.accountId ?? null);
+				setToAccountId(op.entries.find((e) => e.amount > 0)?.accountId ?? null);
+			} else if (op.kind === "adjustment") {
+				setAccountId(nonSourceEntries[0]?.accountId ?? null);
+				setDirection((nonSourceEntries[0]?.amount ?? 0) >= 0 ? "in" : "out");
+			}
+			if (sourceEntry) setSourceAccountId(sourceEntry.accountId);
+			setLoadingOperation(false);
+		});
+	}, [editingId, accounts]);
 
 	const nonSourceAccounts = useMemo(() => accounts?.filter((a) => a.type !== "source") ?? [], [accounts]);
 	const sourceAccounts = useMemo(() => accounts?.filter((a) => a.type === "source") ?? [], [accounts]);
@@ -65,11 +108,16 @@ export default function RegisterOperationScreen() {
 	// es obligatoria. Las transferencias no tocan la fuente.
 	const needsSourcePicker = kind !== "transfer" && sourceAccounts.length > 1;
 
-	const date = useMemo(() => {
+	const setDaysAgo = (days: number) => {
 		const d = new Date();
-		d.setDate(d.getDate() - daysAgo);
-		return d.toISOString();
-	}, [daysAgo]);
+		d.setDate(d.getDate() - days);
+		setDate(d.toISOString());
+	};
+	const dateValue = new Date(date);
+	const yesterday = new Date();
+	yesterday.setDate(yesterday.getDate() - 1);
+	const isToday = sameDay(dateValue, new Date());
+	const isYesterday = sameDay(dateValue, yesterday);
 
 	const buildPayload = (): CreateOperationInput | null => {
 		const value = Number(amount);
@@ -105,15 +153,19 @@ export default function RegisterOperationScreen() {
 		setError(null);
 		setSubmitting(true);
 		try {
-			await createOperation(payload, idempotencyKey.current);
+			if (editingId) {
+				await updateOperation(editingId, payload);
+			} else {
+				await createOperation(payload, idempotencyKey.current);
+			}
 			router.back();
 		} catch (err) {
-			setError(err instanceof ApiError ? err.message : "No se pudo registrar la operación");
+			setError(err instanceof ApiError ? err.message : "No se pudo guardar la operación");
 			setSubmitting(false);
 		}
 	};
 
-	if (!accounts || !categories) {
+	if (!accounts || !categories || loadingOperation) {
 		return (
 			<ThemedView style={styles.centered}>
 				<ActivityIndicator color={theme.colors.interactiveBrand} />
@@ -123,6 +175,7 @@ export default function RegisterOperationScreen() {
 
 	return (
 		<ThemedView style={styles.container}>
+			<Stack.Screen options={{ title: editingId ? "Editar" : "Registrar" }} />
 			<SafeAreaView style={styles.safeArea} edges={["bottom"]}>
 				<ScrollView contentContainerStyle={styles.scrollContent}>
 					<View style={styles.chipRow}>
@@ -142,8 +195,11 @@ export default function RegisterOperationScreen() {
 					/>
 
 					<View style={styles.chipRow}>
-						<Chip label="Hoy" active={daysAgo === 0} onPress={() => setDaysAgo(0)} />
-						<Chip label="Ayer" active={daysAgo === 1} onPress={() => setDaysAgo(1)} />
+						<Chip label="Hoy" active={isToday} onPress={() => setDaysAgo(0)} />
+						<Chip label="Ayer" active={isYesterday} onPress={() => setDaysAgo(1)} />
+						{!isToday && !isYesterday && (
+							<Chip label={dateValue.toLocaleDateString("es-CO")} active onPress={() => {}} />
+						)}
 					</View>
 
 					{kind === "income" && (
