@@ -11,6 +11,7 @@ import { createOperation, getOperation, updateOperation, type CreateOperationInp
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getCategoryIcon } from "@/lib/categoryIcons";
+import { formatAmountInput, stripAmountInput } from "@/lib/currency";
 import { useTheme } from "@/theme";
 
 function sameDay(a: Date, b: Date) {
@@ -185,8 +186,8 @@ export default function RegisterOperationScreen() {
 					</View>
 
 					<TextInput
-						value={amount}
-						onChangeText={setAmount}
+						value={formatAmountInput(amount)}
+						onChangeText={(text) => setAmount(stripAmountInput(text))}
 						keyboardType="numeric"
 						placeholder="Monto"
 						placeholderTextColor={theme.colors.textSubtle}

@@ -8,7 +8,7 @@ import { confirmOperation, deleteOperation, getOperation, type Operation, type O
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getCategoryIcon } from "@/lib/categoryIcons";
-import { formatCurrency } from "@/lib/currency";
+import { formatAmountInput, formatCurrency, stripAmountInput } from "@/lib/currency";
 import { useTheme } from "@/theme";
 
 const KIND_LABEL: Record<OperationKind, string> = {
@@ -173,8 +173,8 @@ function ConfirmSection({ operation, onConfirmed }: { operation: Operation; onCo
 				No afecta saldos hasta que se confirme. Ajusta el monto si hace falta.
 			</ThemedText>
 			<TextInput
-				value={amount}
-				onChangeText={setAmount}
+				value={formatAmountInput(amount)}
+				onChangeText={(text) => setAmount(stripAmountInput(text))}
 				keyboardType="numeric"
 				editable={!confirming}
 				style={[styles.input, { borderColor: theme.colors.borderSubtle, color: theme.colors.textStrong }]}
