@@ -3,6 +3,7 @@ import { create } from "zustand";
 import * as authApi from "@/api/auth";
 import { configureAuth } from "@/api/client";
 import { clearStoredRefreshToken, getStoredRefreshToken, setStoredRefreshToken } from "./secureTokens";
+import { clearSyncState } from "./syncStorage";
 
 export type SessionUser = authApi.SessionUser;
 export type SessionStatus = "checking" | "authenticated" | "unauthenticated";
@@ -56,6 +57,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
 	clearLocalSession: async () => {
 		await clearStoredRefreshToken();
+		// El corte de sincronización y los ETag son de este usuario: si
+		// sobrevivieran al logout, la sesión siguiente pediría un delta en vez
+		// del histórico y arrancaría con datos ajenos a medias.
+		await clearSyncState();
 		set({ accessToken: null, user: null, status: "unauthenticated" });
 	},
 

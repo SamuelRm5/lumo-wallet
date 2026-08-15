@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { getWithETagCache } from "./cached";
 import type { AccountType } from "./accounts";
 
 // docs/APP_MOVIL.md §4.2. Forma tomada de server/src/services/balances.service.js.
@@ -15,6 +15,8 @@ export type Summary = {
 	discrepancy: number;
 };
 
+// Con ETag: el servidor responde 304 si nada cambió y se reusa el último cuerpo
+// guardado, en vez de volver a bajar el resumen entero en cada arranque.
 export function getSummary() {
-	return apiRequest<Summary>("/summary");
+	return getWithETagCache<Summary>("/summary");
 }

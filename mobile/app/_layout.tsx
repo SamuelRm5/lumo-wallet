@@ -3,8 +3,10 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { AppState } from "react-native";
 
 import { useSessionStore } from "@/store/session";
+import { useSyncStore } from "@/store/sync";
 import { googleFontsToLoad } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +24,22 @@ export default function RootLayout() {
 	}, []);
 
 	const sessionReady = status !== "checking";
+	const isAuthenticatedNow = status === "authenticated";
+
+	// Sincronización incremental al abrir la app y al volver del background
+	// (docs/APP_MOVIL.md §4.10). No bloquea el arranque: cada pantalla ya pide
+	// lo suyo, y esto solo mantiene el corte al día y reporta los borrados.
+	useEffect(() => {
+		if (!isAuthenticatedNow) return;
+
+		const sync = useSyncStore.getState().sync;
+		sync();
+
+		const subscription = AppState.addEventListener("change", (next) => {
+			if (next === "active") sync();
+		});
+		return () => subscription.remove();
+	}, [isAuthenticatedNow]);
 
 	useEffect(() => {
 		if (fontsLoaded || fontError) {
@@ -48,6 +66,7 @@ export default function RootLayout() {
 					<Stack.Screen name="categories" />
 					<Stack.Screen name="movement" />
 					<Stack.Screen name="recurring" />
+					<Stack.Screen name="devices" options={{ headerShown: true, title: "Dispositivos" }} />
 				</Stack.Protected>
 				<Stack.Protected guard={!isAuthenticated}>
 					<Stack.Screen name="login" />

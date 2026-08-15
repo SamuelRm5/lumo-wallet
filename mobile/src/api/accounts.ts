@@ -1,4 +1,5 @@
 import { apiRequest } from "./client";
+import { getWithETagCache } from "./cached";
 
 // docs/APP_MOVIL.md §4.3. Formas tomadas de server/src/schemas/accounts.schema.js
 // y server/src/services/accounts.service.js.
@@ -16,8 +17,10 @@ export type Account = {
 	createdAt: string;
 };
 
+// Con ETag: la petición se hace siempre, pero el servidor responde 304 si nada
+// cambió y se reusa el último cuerpo guardado (docs/APP_MOVIL.md §4.2).
 export function listAccounts(type?: AccountType) {
-	return apiRequest<{ data: Account[] }>(`/accounts${type ? `?type=${type}` : ""}`);
+	return getWithETagCache<{ data: Account[] }>(`/accounts${type ? `?type=${type}` : ""}`);
 }
 
 export function getAccount(id: number) {

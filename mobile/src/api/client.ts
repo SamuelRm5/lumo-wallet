@@ -129,6 +129,43 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 	return payload as T;
 }
 
+// Variante de apiRequest que expone el ETag de la respuesta y distingue el 304
+// del resto (docs/APP_MOVIL.md §4.2): `apiRequest` devuelve `undefined` en un
+// 304 y no deja leer las cabeceras, que es justo lo que necesita el arranque
+// para no volver a bajar cuentas, categorías y resumen si nada cambió.
+export type ETagResult<T> = { notModified: boolean; data: T | null; etag: string | null };
+
+export async function apiRequestWithETag<T>(path: string, etag?: string | null): Promise<ETagResult<T>> {
+	const options: RequestOptions = etag ? { headers: { "If-None-Match": etag } } : {};
+
+	let response = await performRequest(path, options);
+
+	if (response.status === 401 && authAdapter) {
+		const newToken = await ensureFreshAccessToken();
+		if (newToken) {
+			response = await performRequest(path, options);
+		}
+	}
+
+	const nextETag = response.headers.get("etag");
+
+	if (response.status === 304) {
+		return { notModified: true, data: null, etag: etag ?? nextETag };
+	}
+
+	const isJson = response.headers.get("content-type")?.includes("application/json");
+	const payload = isJson ? await response.json() : undefined;
+
+	if (!response.ok) {
+		if (payload?.error) {
+			throw new ApiError(response.status, payload.error);
+		}
+		throw new ApiError(response.status, { code: "INTERNAL", message: "Error de red o del servidor" });
+	}
+
+	return { notModified: false, data: payload as T, etag: nextETag };
+}
+
 // GET /api/health vive fuera de /api/v1 y no pide autenticación (docs/APP_MOVIL.md §3):
 // sirve solo para comprobar conectividad, no para nada del contrato de negocio.
 export async function checkApiHealth(): Promise<{ status: string }> {

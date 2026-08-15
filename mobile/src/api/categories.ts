@@ -1,4 +1,5 @@
 import { apiRequest } from "./client";
+import { getWithETagCache } from "./cached";
 
 // docs/APP_MOVIL.md §4.6. Formas tomadas de server/src/schemas/categories.schema.js.
 
@@ -15,8 +16,9 @@ export type Category = {
 	kind: CategoryKind;
 };
 
+// Con ETag, igual que cuentas y resumen (docs/APP_MOVIL.md §4.2).
 export function listCategories(kind?: CategoryKind) {
-	return apiRequest<{ data: Category[] }>(`/categories${kind ? `?kind=${kind}` : ""}`);
+	return getWithETagCache<{ data: Category[] }>(`/categories${kind ? `?kind=${kind}` : ""}`);
 }
 
 export function createCategory(data: { name: string; icon?: string | null; color?: string | null; kind: CategoryKind }) {
