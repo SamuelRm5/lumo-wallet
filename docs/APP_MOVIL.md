@@ -275,6 +275,8 @@ Dos líneas que la UI no puede fusionar: `byCategory` con `categoryId: null` es 
 
 `POST /devices` con `{ "expoPushToken": "ExponentPushToken[...]", "platform": "android" }`, tras pedir permiso de notificaciones. Repetir el mismo token no duplica: lo reasigna. Las notificaciones son **solo** para recurrentes.
 
+> **La app no implementa esto.** El push se retiró del alcance el 2026-08-15: no hace falta un aviso proactivo. El job de recurrentes sigue registrando la operación de una regla `auto` y dejando en `pending` la de una `reminder`; el usuario se entera al abrir la app. Estos tres endpoints y `push.service.js` siguen en pie y probados, pero sin cliente. El detalle está en `mobile/plans/FASE-6.md`.
+
 ### 4.10 Sincronización
 
 `GET /sync?since=<ISO>` devuelve el delta de cuentas, categorías y operaciones:
@@ -329,7 +331,7 @@ Cada punto de esta lista fue una decisión, no una omisión:
 
 ## 7. Lo que el backend todavía no da
 
-- **El envío real de un push no está verificado.** El código maneja tickets y recibos, pero sin `EXPO_ACCESS_TOKEN` y sin una app instalada no se ha probado contra Expo. Es el primer punto a cerrar cuando la app pueda recibir notificaciones.
+- **El envío real de un push no está verificado, y deja de ser un pendiente.** El código maneja tickets y recibos, pero sin `EXPO_ACCESS_TOKEN` y sin una app instalada no se ha probado contra Expo. Desde el 2026-08-15 el push está fuera del alcance de la app (§4.9), así que esto queda como una capacidad del backend sin usar, no como algo que falte por cerrar.
 - **`GET /sync` no pagina** (`BACKEND.md` §2.23). Con 1.668 operaciones son unos 350 KB, ~50 KB comprimidos, una sola vez.
 - **`refresh_tokens.deviceId` siempre es `null`**: el login no recibe todavía el dispositivo, así que no se puede cerrar sesión en un teléfono concreto. `issueSession` ya acepta el parámetro; falta pasarlo desde el cliente y exponerlo en `POST /auth/login`.
 - **No hay HTTPS ni despliegue.** En desarrollo se trabaja contra la IP local por HTTP; una app compilada exige TLS en Android e iOS.

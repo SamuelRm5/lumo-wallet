@@ -2,11 +2,13 @@
 
 ## Objetivo
 
-Dejar una development build instalable en el teléfono conectado, para usar la app sin depender de Metro corriendo en el PC y para que el push real (Fase 6) sea reproducible en cualquier momento. Esta es la última fase: completa la app hasta el límite que fija `docs/APP_MOVIL.md` §1, que se detiene en desarrollo local.
+Dejar una development build instalable en el teléfono conectado, para usar la app sin depender de Metro corriendo en el PC. Esta es la última fase: completa la app hasta el límite que fija `docs/APP_MOVIL.md` §1, que se detiene en desarrollo local.
+
+Con el push fuera del alcance (Fase 6), este es el único motivo que queda para la build, y sigue siendo suficiente por sí solo: hoy la app solo arranca con el portátil encendido sirviendo el bundle.
 
 ## Precondiciones
 
-Fase 6 cerrada, incluida la verificación de push sobre una development build preliminar.
+Fase 6 cerrada.
 
 ---
 
@@ -48,9 +50,8 @@ La development build lee `EXPO_PUBLIC_API_URL` igual que Expo Go. No hay desplie
 
 1. La build instalada abre sin Metro corriendo en el PC (usa el bundle embebido o se conecta a un servidor de desarrollo si se lanza `npx expo start --dev-client`).
 2. Login funciona igual que en Expo Go.
-3. Una notificación push real llega con la app en background.
-4. Un ciclo de background → foreground dispara `GET /sync` y refleja cambios hechos desde otra sesión.
-5. El ícono no es el placeholder por defecto de Expo.
+3. Un ciclo de background → foreground dispara `GET /sync` y refleja cambios hechos desde otra sesión.
+4. El ícono no es el placeholder por defecto de Expo.
 
 ---
 
@@ -61,6 +62,7 @@ Explícitamente fuera de las ocho fases, por `docs/APP_MOVIL.md` §1 y §7:
 - Publicación en Play Store.
 - HTTPS y dominio propio.
 - Despliegue de producción del backend.
+- Push, retirado del alcance en la Fase 6. No hace falta `EXPO_ACCESS_TOKEN` para esta build.
 - `refresh_tokens.deviceId`: el login todavía no recibe el dispositivo (§7), así que no se puede cerrar sesión en un teléfono concreto desde otro. Es una mejora de backend, no de esta fase; catalogada en `docs/BACKEND.md` §2.25.
 
 ---

@@ -66,7 +66,6 @@ export default function RootLayout() {
 					<Stack.Screen name="categories" />
 					<Stack.Screen name="movement" />
 					<Stack.Screen name="recurring" />
-					<Stack.Screen name="devices" options={{ headerShown: true, title: "Dispositivos" }} />
 				</Stack.Protected>
 				<Stack.Protected guard={!isAuthenticated}>
 					<Stack.Screen name="login" />
