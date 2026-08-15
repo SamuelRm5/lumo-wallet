@@ -10,8 +10,8 @@ import { ThemedView } from "@/components/themed-view";
 import { useSessionStore } from "@/store/session";
 import { useTheme } from "@/theme";
 
-// Perfil, cuentas y categorías (Fases 1 a 3). Recurrentes (Fase 5) y
-// dispositivos (Fase 6) se agregan en sus fases respectivas.
+// Perfil, cuentas, categorías y recurrentes (Fases 1 a 5). Los dispositivos
+// (Fase 6) se agregan en su fase.
 export default function SettingsScreen() {
 	const theme = useTheme();
 	const user = useSessionStore((state) => state.user);
@@ -33,6 +33,15 @@ export default function SettingsScreen() {
 				<Link href="/categories" asChild>
 					<Pressable style={StyleSheet.flatten([styles.navRow, { borderColor: theme.colors.borderSubtle }])}>
 						<ThemedText variant="bodyStrong">Categorías</ThemedText>
+						<ThemedText variant="body" colorToken="textMuted">
+							›
+						</ThemedText>
+					</Pressable>
+				</Link>
+
+				<Link href="/recurring" asChild>
+					<Pressable style={StyleSheet.flatten([styles.navRow, { borderColor: theme.colors.borderSubtle }])}>
+						<ThemedText variant="bodyStrong">Recurrentes</ThemedText>
 						<ThemedText variant="body" colorToken="textMuted">
 							›
 						</ThemedText>

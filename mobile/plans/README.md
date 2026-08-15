@@ -11,7 +11,7 @@ Detalle de ejecución de las fases necesarias para construir `mobile/` según `d
 | 2 | [FASE-2.md](FASE-2.md) | Inicio y cuentas, incluida conciliación | cerrada. Verificada en el teléfono real, incluida la conciliación end-to-end |
 | 3 | [FASE-3.md](FASE-3.md) | Registrar operación (las cuatro formas) y categorías | cerrada. Gasto verificado de punta a punta en el teléfono real; income/transfer/adjustment revisados en el formulario pero no enviados, ver Estado de ejecución |
 | 4 | [FASE-4.md](FASE-4.md) | Movimientos: listado por cursor, edición, confirmación de pendientes | cerrada. Lista, filtro por tipo, detalle, edición y borrado verificados de punta a punta en el teléfono real; confirmación de pendientes, paginación y legacy no probados en vivo por falta de datos, ver Estado de ejecución |
-| 5 | [FASE-5.md](FASE-5.md) | Recurrentes y reportes | pendiente |
+| 5 | [FASE-5.md](FASE-5.md) | Recurrentes y reportes | cerrada. Los cinco puntos de Aceptación verificados en el teléfono real; queda una observación de renderizado en Reportes y sin probar el modo `reminder`, ver Estado de ejecución |
 | 6 | [FASE-6.md](FASE-6.md) | Dispositivo, push y sincronización incremental | pendiente |
 | 7 | [FASE-7.md](FASE-7.md) | Development build instalable en el teléfono | pendiente |
 
