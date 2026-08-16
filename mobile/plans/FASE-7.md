@@ -69,4 +69,13 @@ Explícitamente fuera de las ocho fases, por `docs/APP_MOVIL.md` §1 y §7:
 
 ## Desviaciones
 
-_(se completa durante la ejecución de la fase)_
+**Perfil `preview`, no `development`.** El paso 1 pedía `development`, que produce un dev client: sigue necesitando Metro sirviendo el bundle, que es justo lo que el criterio 1 dice que no debe pasar. El perfil que cumple la aceptación es `preview` con `android.buildType: "apk"`, un release con el bundle embebido. `eas.json` deja los dos.
+
+**La build espera al backend en el VPS (2026-08-16).** El paso 4 daba por hecho que el APK seguiría apuntando a la IP de la LAN. No sirve, por dos razones que aparecieron al configurar la build:
+
+- `EXPO_PUBLIC_API_URL` se resuelve en tiempo de build y queda escrito dentro del APK. Con la IP de la LAN, el APK deja de funcionar en cuanto el PC cambia de red, y no hay forma de corregirlo sin reconstruir.
+- Android 9 y superiores bloquean el tráfico en claro en una build de release. Un `http://` obliga a habilitar `usesCleartextTraffic` con `expo-build-properties`, es decir a desactivar una protección de la plataforma para toda la app.
+
+Las dos las resuelve la misma cosa: una URL estable con HTTPS. Eso mueve el despliegue del backend, que §"Fuera de alcance" excluía de las ocho fases, a precondición de esta. La build se lanza cuando el VPS esté sirviendo, cambiando `EXPO_PUBLIC_API_URL` en el perfil `preview` de `eas.json`.
+
+Antes de esa decisión se llegó a lanzar una build, cancelada a los pocos segundos (`2616a23a`, sin artefacto). Quedaron de ella el proyecto `@samuelrm5/lumo-wallet` en EAS, su `projectId` en `app.json` y un keystore de Android generado en el servidor de Expo. Los tres sirven igual para la build definitiva.
