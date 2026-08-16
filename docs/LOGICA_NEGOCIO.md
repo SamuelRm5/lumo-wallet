@@ -177,8 +177,8 @@ Una regla guarda: tipo de operación, monto, categoría, cuentas origen/destino,
 
 Dos modos:
 
-- **Automático** — la app genera la operación en la fecha y notifica que ya quedó registrada. Para montos fijos y confiables: arriendo, Netflix.
-- **Recordatorio** — la app notifica y deja la operación **pendiente de confirmación**, con el monto precargado y editable. Para montos variables: servicios públicos, mercado quincenal.
+- **Automático** — la operación se genera en la fecha y queda registrada. Para montos fijos y confiables: arriendo, Netflix.
+- **Recordatorio** — la operación se genera **pendiente de confirmación**, con el monto precargado y editable. Para montos variables: servicios públicos, mercado quincenal.
 
 Reglas:
 
@@ -186,7 +186,7 @@ Reglas:
 - Editar una regla no reescribe las operaciones ya generadas.
 - Si la app estuvo cerrada, al abrir se generan las ocurrencias pendientes desde la última ejecución. Nunca se duplican: cada ocurrencia se identifica por `(recurringRuleId, fecha prevista)`.
 - Una operación pendiente de confirmación **no afecta saldos** hasta que se confirma.
-- Las notificaciones se entregan por push a través de Expo, con el dispositivo registrado por usuario.
+- **El aviso es pasivo.** El usuario ve lo generado y lo pendiente al abrir la app; no se le interrumpe con una notificación. El push se retiró del alcance el 2026-08-15: nada del modelo depende de él, porque el job genera las operaciones se entere el usuario o no. El backend conserva la capacidad de enviarlo, hoy sin cliente que registre dispositivos (`docs/APP_MOVIL.md` §4.9).
 
 ---
 
@@ -255,7 +255,7 @@ No quedan decisiones abiertas: el modelo está cerrado y se puede desarrollar.
 
 3. **Una sola moneda: COP.** No hay conversión ni tasas de cambio en ninguna parte. El campo de moneda existe en la cuenta con valor fijo, solo para no requerir una migración si algún día cambia.
 
-4. **La conciliación es pasiva.** La app no recuerda ni notifica: muestra en el dashboard cuándo se concilió por última vez cada depósito y el usuario decide cuándo hacerlo. Las notificaciones quedan reservadas a los recurrentes (§8).
+4. **La conciliación es pasiva.** La app no recuerda ni notifica: muestra en el dashboard cuándo se concilió por última vez cada depósito y el usuario decide cuándo hacerlo. Lo que empezó siendo la excepción de la conciliación terminó siendo la regla de toda la app: desde el 2026-08-15 los recurrentes también avisan de forma pasiva (§8) y no queda ninguna notificación.
 
 5. **Qué se hace con el histórico.** Los movimientos actuales son asientos sueltos: un gasto de 200.000 quedó como dos filas independientes, una en la fuente y otra en Nequi, sin ninguna referencia entre ellas. Esa relación nunca se guardó y no se puede reconstruir: emparejar por monto y fecha adivina mal cuando hay dos gastos iguales el mismo día, y las veces que se olvidó registrar una pata dejaron filas huérfanas reales.
 

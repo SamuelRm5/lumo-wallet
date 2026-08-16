@@ -100,8 +100,8 @@ Cerrada. 106 tests en verde, 32 de ellos nuevos: el job, `/sync`, `/devices` y e
 |---|---|
 | 1. El job no duplica al correr dos veces | `recurring.job.test.js`: se devuelve `nextRunAt` a la primera ocurrencia y la segunda pasada genera 0 y descarta 3 |
 | 2. Una `pending` no altera saldos | El saldo del depósito sigue en 0 tras generar tres recordatorios |
-| 3. La notificación llega a un dispositivo real | **No verificado.** Requiere `EXPO_ACCESS_TOKEN` y un teléfono con la app instalada, que todavía no existe |
-| 4. Un token dado de baja se elimina | Cubierto en código (ticket y recibo), no verificado contra Expo por lo mismo |
+| 3. La notificación llega a un dispositivo real | **Retirado el 2026-08-15.** El push salió del alcance de la app, así que no hay dispositivo al que llegar ni nada que verificar |
+| 4. Un token dado de baja se elimina | Retirado por lo mismo. El manejo de ticket y recibo sigue escrito y sin ejercitar |
 | 5. `GET /sync?since=` devuelve los borrados | `sync.api.test.js`: borrar una operación y una categoría las reporta en `deleted` y no en `updated` |
 | 6. `X-Client-Version` por debajo del mínimo recibe `426` | `transport.api.test.js`, con las cuatro variantes: vieja, mínima, posterior y ausente |
 | 7. El backup corre y su restauración está probada | `scripts/backup.sh` y `scripts/restore-check.sh`, ejecutados sobre la base local: 27/118/1668/1690 idénticos entre origen y copia |
@@ -121,4 +121,4 @@ Lo que los tests protegen, más allá del CRUD:
 - **`GET /sync` no pagina.** Decisión deliberada, §2.23: las filas migradas comparten `updatedAt` al milisegundo y un corte por marca de tiempo se atascaría.
 - **Los recibos de Expo se esperan en memoria**, no en una tabla. §2.24.
 - **El job corre también al arrancar**, no solo en la hora programada: si el servidor estuvo caído, las ocurrencias atrasadas no esperan a la siguiente medianoche (`LOGICA_NEGOCIO.md` §8).
-- **La notificación no se ha probado contra un dispositivo real.** No hay app instalada todavía, y `EXPO_ACCESS_TOKEN` no está configurado. Sin token el envío se salta y queda registrado en el log en vez de fallar. Es lo único de la fase que queda por verificar en el mundo real, y solo se puede hacer con la app móvil en la mano.
+- **La notificación nunca se probó contra un dispositivo real, y ya no se va a probar.** El 2026-08-15 el push salió del alcance de la app móvil: el aviso pasa a ser pasivo y nada del modelo depende de él, porque el job genera las operaciones se entere el usuario o no. `push.service.js`, los tres endpoints de `/devices` y sus tests siguen en pie como capacidad del backend sin cliente. El motivo y la trampa del import de `expo-notifications`, por si algún día se repone, están en `mobile/plans/FASE-6.md`.
