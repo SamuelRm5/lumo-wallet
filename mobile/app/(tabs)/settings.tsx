@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "expo-router";
-import { ActivityIndicator, Pressable, StyleSheet, TextInput } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { changePassword, updateMe } from "@/api/auth";
@@ -17,8 +17,11 @@ export default function SettingsScreen() {
 
 	return (
 		<ThemedView style={styles.container}>
-			<SafeAreaView style={styles.safeArea}>
-				<ThemedText variant="title">Ajustes</ThemedText>
+			<SafeAreaView style={styles.safeArea} edges={["top"]}>
+				{/* Los formularios de perfil y contraseña no caben en pantalla, y
+				    con el teclado abierto menos: sin scroll no se llega al botón. */}
+				<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+					<ThemedText variant="title">Ajustes</ThemedText>
 
 				<Link href="/accounts" asChild>
 					<Pressable style={StyleSheet.flatten([styles.navRow, { borderColor: theme.colors.borderSubtle }])}>
@@ -57,9 +60,10 @@ export default function SettingsScreen() {
 
 				<LogoutButton />
 
-				<ThemedText variant="caption" colorToken="textSubtle" style={styles.footnote}>
-					{user ? `Sesión de ${user.email}` : null}
-				</ThemedText>
+					<ThemedText variant="caption" colorToken="textSubtle" style={styles.footnote}>
+						{user ? `Sesión de ${user.email}` : null}
+					</ThemedText>
+				</ScrollView>
 			</SafeAreaView>
 		</ThemedView>
 	);
@@ -224,7 +228,8 @@ function LogoutButton() {
 
 const styles = StyleSheet.create({
 	container: { flex: 1 },
-	safeArea: { flex: 1, padding: 24, gap: 16 },
+	safeArea: { flex: 1 },
+	scrollContent: { padding: 24, gap: 16, paddingBottom: 48 },
 	card: { borderRadius: 24, borderWidth: 1, padding: 20, gap: 10 },
 	navRow: {
 		flexDirection: "row",
