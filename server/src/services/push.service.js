@@ -4,6 +4,8 @@ import env from "../config/env.js";
 import { logger } from "../middleware/requestLogger.js";
 import { notFound, validationError } from "../lib/errors.js";
 
+// Capacidad conservada sin cliente: ninguna app registra dispositivos hoy, así
+// que listDevices devuelve vacío y no se envía nada
 const expo = new Expo({ accessToken: env.EXPO_ACCESS_TOKEN });
 
 export const isEnabled = () => Boolean(env.EXPO_ACCESS_TOKEN);

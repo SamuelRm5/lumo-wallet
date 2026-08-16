@@ -55,7 +55,8 @@ Verificado contra el código. La columna indica si el rediseño lo resuelve solo
 | 2.21 | El corte de rango a medianoche UTC (§2.1) reaparece en cualquier endpoint nuevo que acepte fechas: `z.coerce.date()` sobre `2026-08-05` produce medianoche UTC y deja fuera el día entero | Cerrado en la Fase 4: los rangos pasan por `rangeStart` y `rangeEnd`, que resuelven en `APP_TIMEZONE`. Todo endpoint nuevo con fechas debe usarlos |
 | 2.22 | La aritmética de las columnas `DATE` (`startDate`, `nextRunAt`, `scheduledDate`) se hacía en `APP_TIMEZONE`: MySQL las devuelve a medianoche UTC y convertirlas a Bogotá las corre al día anterior. Una regla del día 5 habría generado su ocurrencia el 4, y cada relectura la habría corrido un día más | Cerrado en la Fase 5: `lib/date.js` expone `plainDate` y `fromPlainDate`, y las fechas sin hora se calculan en UTC |
 | 2.23 | `GET /sync` no pagina: devuelve todo lo cambiado desde `since` en una sola respuesta, y la primera sincronización de un dispositivo trae las 1.668 operaciones del histórico (~350 KB, ~50 KB comprimidos) | Abierto, deliberado. Paginar exige un corte estable, y las filas migradas comparten `updatedAt` al milisegundo, así que un corte por marca de tiempo se atascaría. Se revisa si el histórico crece un orden de magnitud |
-| 2.24 | Los identificadores de los tickets de Expo esperan el recibo en memoria: al reiniciar el proceso se pierden y la baja de un token muerto se retrasa hasta el siguiente envío | Abierto, aceptado. La alternativa es una tabla para un dato que vive una hora |
+| 2.24 | Los identificadores de los tickets de Expo esperan el recibo en memoria: al reiniciar el proceso se pierden y la baja de un token muerto se retrasa hasta el siguiente envío | Latente desde el 2026-08-15: sin cliente que registre dispositivos no se envía nada y no hay recibos que perder. Vuelve a contar si alguien repone el push |
+| 2.25 | `refresh_tokens.deviceId` siempre es `null`: `issueSession` ya acepta el parámetro, pero `POST /auth/login` no lo recibe del cliente ni lo expone en la respuesta. Sin eso no se puede cerrar sesión en un teléfono concreto desde otro (`docs/APP_MOVIL.md` §7) | Abierto. Lo cierra quien conecte el login al identificador de dispositivo del cliente móvil, candidato natural la Fase 6 de `mobile/plans/` |
 
 El detalle de ejecución de cada fase está en `server/plans/`.
 
@@ -527,19 +528,23 @@ CRUD estándar en `/categories`, filtro `?kind=`. Borrar es soft delete: las ope
 
 CRUD estándar en `/recurring-rules`. Un job diario recorre las reglas con `nextRunAt <= hoy`:
 
-- `mode = auto` → crea la operación con `status = 'confirmed'` y notifica que quedó registrada.
-- `mode = reminder` → crea la operación con `status = 'pending'` y notifica que hay que confirmarla. No afecta saldos hasta `POST /operations/:id/confirm`, donde el monto es editable.
+- `mode = auto` → crea la operación con `status = 'confirmed'`.
+- `mode = reminder` → crea la operación con `status = 'pending'`. No afecta saldos hasta `POST /operations/:id/confirm`, donde el monto es editable.
 
 El índice único `[recurringRuleId, scheduledDate]` hace la generación idempotente: si el job corre dos veces, o recupera ocurrencias atrasadas tras una caída, no duplica nada.
+
+El job intenta notificar cada ocurrencia, pero desde el 2026-08-15 no hay cliente que registre dispositivos, así que la lista está vacía y el envío se salta. El usuario se entera al abrir la app (`LOGICA_NEGOCIO.md` §8).
 
 ### 7.7 Devices y sync
 
 | Endpoint | Notas |
 |---|---|
 | `POST /devices` | registra el push token de Expo. Repetir el mismo token no duplica: lo reasigna al usuario que lo envía |
-| `GET /devices` | los dispositivos del usuario, para poder revocar uno desde la app |
+| `GET /devices` | los dispositivos del usuario, para poder revocar uno |
 | `DELETE /devices/:id` | |
 | `GET /sync?since=` | delta de operaciones, cuentas y categorías creadas, actualizadas y borradas desde una marca de tiempo |
+
+Los tres de `devices` están en pie y probados, pero **ningún cliente los llama**: el push salió del alcance de la app móvil el 2026-08-15 (`docs/APP_MOVIL.md` §4.9). Se conservan porque reponer el envío sería volver a escribirlos igual, no porque algo los use.
 
 `GET /sync` es uno de los pocos consumidores del escape de §3.2: necesita ver los registros borrados para poder reportarlos al cliente. Devuelve cada colección partida en `updated` y `deleted`, esta última solo con identificadores, y un `serverTime` que el cliente guarda para la siguiente llamada. El corte superior es ese mismo `serverTime`, tomado antes de consultar: lo que se escriba mientras la consulta corre entra en el delta siguiente en vez de perderse. `since` ausente significa sincronización completa.
 
@@ -789,7 +794,7 @@ Cada fase se puede desplegar sola y tiene un criterio de aceptación verificable
 4. Backup automático programado.
 5. Reporte de errores con la versión del cliente móvil.
 
-**Aceptación:** una regla recurrente en modo recordatorio genera su ocurrencia sin duplicar aunque el job corra dos veces, y la notificación llega al dispositivo.
+**Aceptación:** una regla recurrente en modo recordatorio genera su ocurrencia sin duplicar aunque el job corra dos veces. La segunda mitad de esta aceptación, que la notificación llegue al dispositivo, se retiró el 2026-08-15 al sacar el push del alcance de la app: no hay dispositivo al que llegar.
 
 ---
 
@@ -818,4 +823,4 @@ No quedan decisiones abiertas. El backend se puede desarrollar tal como está es
 | Moneda | **Solo COP** | `currency` existe con default fijo y ningún código ramifica sobre él. Sin tasas ni conversión |
 | Conciliación | **Pasiva** | Sin notificaciones. `lastReconciledAt` se muestra en el dashboard y el usuario concilia cuando quiere |
 | Histórico | **Se conserva** | Cada movimiento migra como operación `legacy` de un solo asiento (§11) |
-| Recurrentes | Dos modos | `auto` registra y notifica; `reminder` deja la operación en `pending`. Las notificaciones son solo para recurrentes |
+| Recurrentes | Dos modos | `auto` registra la operación; `reminder` la deja en `pending`. El aviso es pasivo desde el 2026-08-15: la app no notifica nada |
