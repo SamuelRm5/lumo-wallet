@@ -101,15 +101,17 @@ export default function HomeScreen() {
 					</ThemedView>
 
 					<View style={styles.quickActions}>
+						{/* Cada acceso abre el formulario con su tipo ya elegido; sin el
+						    parámetro los dos caían en el default del formulario (gasto). */}
 						<Pressable
-							onPress={() => router.push("/register-operation")}
+							onPress={() => router.push({ pathname: "/register-operation", params: { kind: "income" } })}
 							style={[styles.quickAction, { backgroundColor: theme.colors.interactiveBrand }]}>
 							<ThemedText variant="bodyStrong" colorToken="textOnBrand">
 								Registrar ingreso
 							</ThemedText>
 						</Pressable>
 						<Pressable
-							onPress={() => router.push("/register-operation")}
+							onPress={() => router.push({ pathname: "/register-operation", params: { kind: "expense" } })}
 							style={[styles.quickAction, { backgroundColor: theme.colors.surfaceInverse }]}>
 							<ThemedText variant="bodyStrong" colorToken="textOnInverse">
 								Registrar gasto

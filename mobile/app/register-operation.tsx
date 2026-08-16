@@ -32,10 +32,14 @@ const KIND_ORDER: OperationKind[] = ["expense", "income", "transfer", "adjustmen
 export default function RegisterOperationScreen() {
 	const theme = useTheme();
 	const router = useRouter();
-	const { operationId } = useLocalSearchParams<{ operationId?: string }>();
+	const { operationId, kind: kindParam } = useLocalSearchParams<{ operationId?: string; kind?: string }>();
 	const editingId = operationId ? Number(operationId) : null;
 
-	const [kind, setKind] = useState<OperationKind>("expense");
+	// El tipo puede venir preseleccionado desde los accesos rápidos de Inicio.
+	// Al editar no importa: el efecto de precarga lo pisa con el de la operación.
+	const [kind, setKind] = useState<OperationKind>(
+		KIND_ORDER.includes(kindParam as OperationKind) ? (kindParam as OperationKind) : "expense",
+	);
 	const [amount, setAmount] = useState("");
 	const [date, setDate] = useState(() => new Date().toISOString());
 	const [description, setDescription] = useState("");
